@@ -32,6 +32,24 @@ AC_TYPE_SIZE_T
 AC_TYPE_SIGNAL
 AC_TYPE_GETGROUPS
 
+dnl Define u_int32_t if we don't have it already (Solaris)
+AC_CHECK_SIZEOF(int)
+AC_CHECK_SIZEOF(short)
+AC_CHECK_SIZEOF(long)
+if test "$ac_cv_sizeof_int" = 4 ; then
+	AC_CHECK_TYPE(int32_t, int)
+	AC_CHECK_TYPE(u_int32_t, unsigned int)
+elif test "$ac_cv_sizeof_short" = 4 ; then
+	AC_CHECK_TYPE(int32_t, short)
+	AC_CHECK_TYPE(u_int32_t, unsigned short)
+elif test "$ac_cv_sizeof_long" = 4 ; then
+	AC_CHECK_TYPE(int32_t, long)
+	AC_CHECK_TYPE(u_int32_t, unsigned long)
+else
+	AC_MSG_ERROR([Cannot find a type with size of 32 bits])
+fi
+
+
 dnl Checks for library functions.
 AC_CHECK_LIB(nsl,main,SOCKETLIBS="$SOCKETLIBS -lnsl")
 AC_CHECK_LIB(socket,socket,SOCKETLIBS="$SOCKETLIBS -lsocket")

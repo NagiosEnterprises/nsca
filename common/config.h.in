@@ -37,7 +37,6 @@
 #undef HAVE_LIMITS_H
 #undef HAVE_SYS_RESOURCE_H
 
-
 #define SOCKET_SIZE_TYPE ""
 #define GETGROUPS_T ""
 #define RETSIGTYPE ""
