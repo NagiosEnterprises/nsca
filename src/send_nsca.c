@@ -4,7 +4,7 @@
  * License: GPL
  * Copyright (c) 2000-2003 Ethan Galstad (nagios@nagios.org)
  *
- * Last Modified: 01-08-2003
+ * Last Modified: 01-26-2003
  *
  * Command line: SEND_NSCA <host_address> [-p port] [-to to_sec] [-c config_file]
  *
@@ -388,7 +388,7 @@ int process_arguments(int argc, char **argv){
 		/* server name/address */
 		else if(!strcmp(argv[x-1],"-H")){
 			if(x<argc){
-				strncpy(server_name,argv[x],sizeof(server_name)-1);
+				strncpy(server_name,argv[x],sizeof(server_name));
 				server_name[sizeof(server_name)-1]='\x0';
 				x++;
 			        }
@@ -421,7 +421,7 @@ int process_arguments(int argc, char **argv){
 		/* config file */
 		else if(!strcmp(argv[x-1],"-c")){
 			if(x<argc){
-				snprintf(config_file,sizeof(config_file)-1,argv[x]);
+				snprintf(config_file,sizeof(config_file),argv[x]);
 				config_file[sizeof(config_file)-1]='\x0';
 				x++;
 			        }
@@ -432,7 +432,7 @@ int process_arguments(int argc, char **argv){
 		/* delimiter to use when parsing input */
 		else if(!strcmp(argv[x-1],"-d")){
 			if(x<argc){
-				snprintf(delimiter,sizeof(delimiter)-1,argv[x]);
+				snprintf(delimiter,sizeof(delimiter),argv[x]);
 				delimiter[sizeof(delimiter)-1]='\x0';
 				x++;
 			        }
@@ -516,7 +516,7 @@ int read_config_file(char *filename){
 
 				return ERROR;
 			        }
-			strncpy(password,varvalue,sizeof(password)-1);
+			strncpy(password,varvalue,sizeof(password));
 			password[sizeof(password)-1]='\x0';
 		        }
 

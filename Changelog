@@ -2,6 +2,13 @@
 NSCA Changelog
 **************
 
+
+2.3 - 01/26/2003
+----------------
+- Minor changes to daemon init code
+- Minor Makefile fixes
+
+
 2.2 - 01/08/2002
 ----------------
 - Hopefully better support for Solaris (u_int32_t)

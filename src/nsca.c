@@ -4,7 +4,7 @@
  * Copyright (c) 2000-2003 Ethan Galstad (nagios@nagios.org)
  * License: GPL
  *
- * Last Modified: 01-08-2003
+ * Last Modified: 01-26-2003
  *
  * Command line: NSCA -c <config_file> [mode]
  *
@@ -186,6 +186,9 @@ int main(int argc, char **argv){
 
                         /* we're a daemon - set up a new process group */
                         setsid();
+
+			/* ignore SIGHUP */
+			signal(SIGHUP, SIG_IGN);
 
 			/* close standard file descriptors */
                         close(0);
