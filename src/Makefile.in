@@ -1,12 +1,12 @@
 ###############################
 # Makefile for NSCA
 #
-# Last Modified: 03-31-2003
+# Last Modified: 10-15-2003
 ###############################
 
 
 # Source code directories
-SRC_COMMON=../common
+SRC_INCLUDE=../include
 
 CC=@CC@
 CFLAGS=@CFLAGS@ @DEFS@
@@ -18,10 +18,10 @@ CP=@CP@
 
 all: nsca send_nsca
 
-nsca: nsca.c netutils.c netutils.h utils.c utils.h $(SRC_COMMON)/common.h $(SRC_COMMON)/config.h
+nsca: nsca.c netutils.c utils.c $(SRC_INCLUDE)/netutils.h $(SRC_INCLUDE)/utils.h $(SRC_INCLUDE)/common.h $(SRC_INCLUDE)/config.h
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(SOCKETLIBS) nsca.c netutils.c utils.c
 
-send_nsca: send_nsca.c netutils.c netutils.h utils.c utils.h $(SRC_COMMON)/common.h $(SRC_COMMON)/config.h
+send_nsca: send_nsca.c netutils.c utils.c $(SRC_INCLUDE)/netutils.h $(SRC_INCLUDE)/utils.h $(SRC_INCLUDE)/common.h $(SRC_INCLUDE)/config.h
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(SOCKETLIBS) send_nsca.c netutils.c utils.c
 
 clean:

@@ -531,9 +531,9 @@ fi
 
 
 PKG_NAME=nsca
-PKG_VERSION="2.4"
+PKG_VERSION="2.5"
 PKG_HOME_URL="http://www.nagios.org/"
-PKG_REL_DATE="07-23-2003"
+PKG_REL_DATE="10-15-2003"
 
 
 ac_aux_dir=
@@ -2463,7 +2463,7 @@ done
 ac_given_srcdir=$srcdir
 ac_given_INSTALL="$INSTALL"
 
-trap 'rm -fr `echo "Makefile subst src/Makefile common/config.h" | sed "s/:[^ ]*//g"` conftest*; exit 1' 1 2 15
+trap 'rm -fr `echo "Makefile subst src/Makefile include/config.h" | sed "s/:[^ ]*//g"` conftest*; exit 1' 1 2 15
 EOF
 cat >> $CONFIG_STATUS <<EOF
 
@@ -2632,7 +2632,7 @@ ac_eD='%g'
 if test "${CONFIG_HEADERS+set}" != set; then
 EOF
 cat >> $CONFIG_STATUS <<EOF
-  CONFIG_HEADERS="common/config.h"
+  CONFIG_HEADERS="include/config.h"
 EOF
 cat >> $CONFIG_STATUS <<\EOF
 fi
@@ -2730,10 +2730,10 @@ rm -fr confdefs* $ac_clean_files
 test "$no_create" = yes || ${CONFIG_SHELL-/bin/sh} $CONFIG_STATUS || exit 1
 
 
-perl subst nsca.cfg
-perl subst send_nsca.cfg
 perl subst init-script
-perl subst nsca.xinetd
+perl subst sample-config/nsca.xinetd
+perl subst sample-config/nsca.cfg
+perl subst sample-config/send_nsca.cfg
 
 
 echo ""

@@ -3,9 +3,9 @@
  * UTILS.C - Utility functions for NSCA
  *
  * License: GPL
- * Copyright (c) 2000-2002 Ethan Galstad (nagios@nagios.org)
+ * Copyright (c) 2000-2003 Ethan Galstad (nagios@nagios.org)
  *
- * Last Modified: 10-09-2002
+ * Last Modified: 10-15-2003
  *
  * Description:
  *
@@ -29,8 +29,8 @@
  *
  ****************************************************************************/
 
-#include "../common/common.h"
-#include "utils.h"
+#include "../include/common.h"
+#include "../include/utils.h"
 
 
 /*#define DEBUG*/

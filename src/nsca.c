@@ -4,7 +4,7 @@
  * Copyright (c) 2000-2003 Ethan Galstad (nagios@nagios.org)
  * License: GPL
  *
- * Last Modified: 09-09-2003
+ * Last Modified: 10-15-2003
  *
  * Command line: NSCA -c <config_file> [mode]
  *
@@ -15,10 +15,10 @@
  * 
  ******************************************************************************/
 
-#include "../common/common.h"
-#include "../common/config.h"
-#include "netutils.h"
-#include "utils.h"
+#include "../include/common.h"
+#include "../include/config.h"
+#include "../include/netutils.h"
+#include "../include/utils.h"
 
 
 static char allowed_hosts[MAX_INPUT_BUFFER];

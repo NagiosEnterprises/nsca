@@ -4,7 +4,7 @@
  * License: GPL
  * Copyright (c) 2000-2003 Ethan Galstad (nagios@nagios.org)
  *
- * Last Modified: 07-23-2003
+ * Last Modified: 10-15-2003
  *
  * Command line: SEND_NSCA <host_address> [-p port] [-to to_sec] [-c config_file]
  *
@@ -15,10 +15,10 @@
 
 /*#define DEBUG*/
 
-#include "../common/common.h"
-#include "../common/config.h"
-#include "netutils.h"
-#include "utils.h"
+#include "../include/common.h"
+#include "../include/config.h"
+#include "../include/netutils.h"
+#include "../include/utils.h"
 
 time_t start_time,end_time;
 
