@@ -5,8 +5,9 @@ NSCA README
 
 Purpose
 -------
-The purpose of this addon is to allow you to execute Nagios
-plugins on a remote host in as transparent a manner as possible.
+The purpose of this addon is to allow you submit service check
+results from remote hosts to the central monitoring host that
+run Nagios.
 
 
 Contents
