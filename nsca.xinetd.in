@@ -1,0 +1,15 @@
+# default: on
+# description: NSCA
+service nsca
+{
+       	flags           = REUSE
+        socket_type     = stream        
+       	wait            = no
+        user            = @nsca_user@
+	group		= @nsca_grp@
+       	server          = /usr/local/nagios/nsca
+        server_args     = -i -c /usr/local/nagios/nsca.cfg
+       	log_on_failure  += USERID
+        disable         = no
+	only_from       = 127.0.0.1
+}
