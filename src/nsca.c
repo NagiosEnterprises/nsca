@@ -4,7 +4,7 @@
  * Copyright (c) 2000-2003 Ethan Galstad (nagios@nagios.org)
  * License: GPL
  *
- * Last Modified: 10-24-2003
+ * Last Modified: 10-28-2003
  *
  * Command line: NSCA -c <config_file> [mode]
  *
@@ -725,6 +725,21 @@ static void accept_connection(int sock, void *unused){
 		return;
                 }
 
+#ifdef HAVE_LIBWRAP
+
+	/* Check whether or not connections are allowed from this host */
+	request_init(&req,RQ_DAEMON,"nsca",RQ_FILE,new_sd,0);
+	fromhost(&req);
+
+	if(!hosts_access(&req)){
+		/* refuse the connection */
+		syslog(LOG_ERR, "refused connect from %s", eval_client(&req));
+		close(new_sd);
+		return;
+		}
+#endif
+
+
         /* fork() if we have to... */
         if(mode==MULTI_PROCESS_DAEMON){
 
@@ -760,29 +775,6 @@ static void accept_connection(int sock, void *unused){
         /* log info to syslog facility */
         if(debug==TRUE)
                 syslog(LOG_DEBUG,"Connection from %s port %d",inet_ntoa(nptr->sin_addr),nptr->sin_port);
-
-#ifdef HAVE_LIBWRAP
-
-	/* Check whether or not connections are allowed from this host */
-	request_init(&req,RQ_DAEMON,"nsca",RQ_FILE,new_sd,0);
-	fromhost(&req);
-
-	if(!hosts_access(&req)){
-
-		syslog(LOG_DEBUG,"Connection refused by TCP wrapper");
-
-		/* cleanup */
-		do_cleanup();
-
-		/* refuse the connection */
-		refuse(&req);
-		close(new_sd);
-
-		/* should not be reached */
-		syslog(LOG_ERR,"libwrap refuse() returns!");
-		exit(STATE_CRITICAL);
-		}
-#endif
 
 	/* handle the connection */
 	if(mode==SINGLE_PROCESS_DAEMON)
