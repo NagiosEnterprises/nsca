@@ -7,8 +7,8 @@ service nsca
        	wait            = no
         user            = @nsca_user@
 	group		= @nsca_grp@
-       	server          = /usr/local/nagios/nsca
-        server_args     = -i -c /usr/local/nagios/nsca.cfg
+       	server          = @bindir@/nsca
+        server_args     = -c @sysconfdir@/nsca.cfg --inetd
        	log_on_failure  += USERID
         disable         = no
 	only_from       = 127.0.0.1

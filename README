@@ -136,7 +136,7 @@ of TCP wrappers, you need to do the following things:
    /etc/inetd.conf as follows:
 
 
-	nsca    stream  tcp     nowait  <user> /usr/sbin/tcpd <nscabin> -i -c <nscacfg>
+	nsca    stream  tcp     nowait  <user> /usr/sbin/tcpd <nscabin> -c <nscacfg> --inetd
 
 
    - Replace <user> with the name of the user that nsca server should run as.
@@ -162,7 +162,7 @@ of TCP wrappers, you need to do the following things:
 	        user            = <user>
 		group		= <group>
         	server          = <nscabin>
-	        server_args     = -i -c <nscacfg>
+	        server_args     = -c <nscacfg> --inetd
         	log_on_failure  += USERID
 	        disable         = no
 		only_from       = <ipaddress1> <ipaddress2> ...

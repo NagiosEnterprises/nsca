@@ -1,4 +1,9 @@
 dnl Process this file with autoconf to produce a configure script.
+
+dnl Disable caching
+define([AC_CACHE_LOAD],)
+define([AC_CACHE_SAVE],)
+
 AC_INIT(src/nsca.c)
 AC_CONFIG_HEADER(common/config.h)
 AC_PREFIX_DEFAULT(/usr/local/nagios)
@@ -6,7 +11,7 @@ AC_PREFIX_DEFAULT(/usr/local/nagios)
 PKG_NAME=nsca
 PKG_VERSION="2.2"
 PKG_HOME_URL="http://www.nagios.org/"
-PKG_REL_DATE="11-19-2002"
+PKG_REL_DATE="01-07-2003"
 
 dnl Figure out how to invoke "install" and what install options to use.
 
@@ -124,11 +129,19 @@ fi
 
 AC_ARG_WITH(nsca_user,--with-nsca-user=<user> sets user name to run NSCA,nsca_user=$withval,nsca_user=nagios)
 AC_ARG_WITH(nsca_grp,--with-nsca-grp=<grp> sets group name to run NSCA,nsca_grp=$withval,nsca_grp=nagios)
+AC_ARG_WITH(nsca_port,--with-nsca-port=<port> sets port number for NSCA to listen on,nsca_port=$withval,nsca_port=5667)
 AC_SUBST(nsca_user)
 AC_SUBST(nsca_grp)
+AC_SUBST(nsca_port)
+AC_DEFINE_UNQUOTED(DEFAULT_SERVER_PORT,$nsca_port)
 
+AC_PATH_PROG(PERL,perl)
+AC_OUTPUT(Makefile subst src/Makefile)
 
-AC_OUTPUT(Makefile src/Makefile nsca.cfg send_nsca.cfg nsca.xinetd)
+perl subst nsca.cfg
+perl subst send_nsca.cfg
+perl subst init-script
+perl subst nsca.xinetd
 
 
 dnl Review options
@@ -140,6 +153,7 @@ echo ""
 echo " General Options:"
 echo " -------------------------"
 
+AC_MSG_RESULT([ NSCA port:  $nsca_port])
 AC_MSG_RESULT([ NSCA user:  $nsca_user])
 AC_MSG_RESULT([ NSCA group: $nsca_grp])
 

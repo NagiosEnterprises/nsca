@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-#  Last Modified 07-09-2002 Ethan Galstad (nagios@nagios.org)
+#  Last Modified 01-07-2003 Ethan Galstad (nagios@nagios.org)
 #  Notes
 #  This script takes care of starting and stopping the NSCA daemon.
 #  Modeled after init script for NRPE written by jaclu@grm.se
@@ -26,8 +26,8 @@ fi
 # Check that networking is up.
 [ ${NETWORKING} = "no" ] && exit 0
 
-NscaBin=/usr/local/nagios/bin/nsca
-NscaCfg=/usr/local/nagios/etc/nsca.cfg
+NscaBin=@bindir@/nsca
+NscaCfg=@sysconfdir@/nsca.cfg
 LockFile=/var/lock/subsys/nsca
 
 # See how we were called.

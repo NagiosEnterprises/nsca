@@ -2,7 +2,7 @@
 # Sample NSCA Daemon Config File 
 # Written by: Ethan Galstad (nagios@nagios.org)
 # 
-# Last Modified: 06-10-2002
+# Last Modified: 01-07-2002
 ####################################################
 
 
@@ -11,7 +11,7 @@
 # Port number we should wait for connections on.
 # This must be a non-priveledged port (i.e. > 1024).
 
-server_port=5667
+server_port=@nsca_port@
 
 
 
@@ -70,7 +70,7 @@ debug=0
 # This is the location of the Nagios command file that the daemon
 # should write all service check results that it receives.
 
-command_file=/usr/local/nagios/var/rw/nagios.cmd
+command_file=@localstatedir@/rw/nagios.cmd
 
 
 # ALTERNATE DUMP FILE
@@ -83,7 +83,7 @@ command_file=/usr/local/nagios/var/rw/nagios.cmd
 # it starts Nagios.  Or you may simply choose to ignore any
 # check results received while Nagios was not running...
 
-alternate_dump_file=/usr/local/nagios/var/rw/nsca.dump
+alternate_dump_file=@localstatedir@/rw/nsca.dump
 
 
 

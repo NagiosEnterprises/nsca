@@ -2,9 +2,9 @@
  *
  * SEND_NSCA.C - NSCA Client
  * License: GPL
- * Copyright (c) 2000-2002 Ethan Galstad (nagios@nagios.org)
+ * Copyright (c) 2000-2003 Ethan Galstad (nagios@nagios.org)
  *
- * Last Modified: 11-19-2002
+ * Last Modified: 01-07-2003
  *
  * Command line: SEND_NSCA <host_address> [-p port] [-to to_sec] [-c config_file]
  *
@@ -81,7 +81,7 @@ int main(int argc, char **argv){
 			printf("Incorrect command line arguments supplied\n");
 		printf("\n");
 		printf("NSCA Client %s\n",PROGRAM_VERSION);
-		printf("Copyright (c) 2000-2002 Ethan Galstad (nagios@nagios.org)\n");
+		printf("Copyright (c) 2000-2003 Ethan Galstad (nagios@nagios.org)\n");
 		printf("Last Modified: %s\n",MODIFICATION_DATE);
 		printf("License: GPL\n");
 		printf("Encryption Routines: ");

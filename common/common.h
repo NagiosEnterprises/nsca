@@ -1,8 +1,8 @@
 /************************************************************************
  *
  * COMMON.H - NSCA Common Include File
- * Copyright (c) 1999-2002 Ethan Galstad (nagios@nagios.org)
- * Last Modified: 07-15-2002
+ * Copyright (c) 1999-2003 Ethan Galstad (nagios@nagios.org)
+ * Last Modified: 01-07-2003
  *
  * License:
  *
@@ -25,7 +25,7 @@
 
 
 #define PROGRAM_VERSION "2.2"
-#define MODIFICATION_DATE "11-19-2002"
+#define MODIFICATION_DATE "01-07-2003"
 
 
 #define OK		0
@@ -41,7 +41,6 @@
 
 
 #define DEFAULT_SOCKET_TIMEOUT	10	/* timeout after 10 seconds */
-#define DEFAULT_SERVER_PORT	5667	/* default port to use */
 
 #define MAX_INPUT_BUFFER	2048	/* max size of most buffers we use */
 

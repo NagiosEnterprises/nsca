@@ -1,7 +1,7 @@
 ###############################
 # Makefile for NSCA
 #
-# Last Modified: 10-09-2002
+# Last Modified: 01-07-2003
 ###############################
 
 
@@ -39,7 +39,7 @@ clean:
 	cd $(SRC_BASE); $(MAKE) $@ ; cd ..
 	rm -f core
 	rm -f *~ */*~
-	rm -f conf.libmcrypttest config.log config.status config.cache nsca.cfg Makefile send_nsca.cfg nsca.xinetd $(SRC_COMMON)config.h
+	rm -f conf.libmcrypttest config.log config.status config.cache init-script nsca.cfg Makefile send_nsca.cfg nsca.xinetd subst $(SRC_COMMON)config.h
 
 distclean: clean
 

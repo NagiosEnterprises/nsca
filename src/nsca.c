@@ -1,10 +1,10 @@
 /*******************************************************************************
  *
  * NSCA.C - Nagios Service Check Acceptor
- * Copyright (c) 2000-2002 Ethan Galstad (nagios@nagios.org)
+ * Copyright (c) 2000-2003 Ethan Galstad (nagios@nagios.org)
  * License: GPL
  *
- * Last Modified: 11-19-2002
+ * Last Modified: 01-07-2003
  *
  * Command line: NSCA -c <config_file> [mode]
  *
@@ -94,7 +94,7 @@ int main(int argc, char **argv){
 			printf("Incorrect command line arguments supplied\n");
                 printf("\n");
                 printf("NSCA - Nagios Service Check Acceptor\n");
-                printf("Copyright (c) 2000-2002 Ethan Galstad (nagios@nagios.org)\n");
+                printf("Copyright (c) 2000-2003 Ethan Galstad (nagios@nagios.org)\n");
                 printf("Version: %s\n",PROGRAM_VERSION);
                 printf("Last Modified: %s\n",MODIFICATION_DATE);
                 printf("License: GPL\n");
