@@ -1,7 +1,7 @@
 ###############################
 # Makefile for NSCA
 #
-# Last Modified: 02-21-2002
+# Last Modified: 10-09-2002
 ###############################
 
 
@@ -12,11 +12,28 @@ SRC_COMMON=./common/
 all:	
 	cd $(SRC_BASE); $(MAKE) $@ ; cd ..
 
+	@echo ""
+	@echo "*** Compile finished ***"
+	@echo ""
+	@echo "If the compile finished without any errors, you should"
+	@echo "find client and server binaries in the src/ subdirectory."
+	@echo ""
+	@echo "Read the README file for more information on installing"
+	@echo "the binaries, creating configuration files, and using"
+	@echo "the server and client."
+	@echo ""
+
 nsca:
 	cd $(SRC_BASE); $(MAKE) $@ ; cd ..
 
 send_nsca:
 	cd $(SRC_BASE); $(MAKE) $@ ; cd ..
+
+install:
+	@echo ""
+	@echo "Read the README file for information on installing the"
+	@echo "client and server binaries."
+	@echo ""
 
 clean:
 	cd $(SRC_BASE); $(MAKE) $@ ; cd ..

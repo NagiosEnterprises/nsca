@@ -5,7 +5,7 @@
  * License: GPL
  * Copyright (c) 2000-2002 Ethan Galstad (nagios@nagios.org)
  *
- * Last Modified: 02-21-2002
+ * Last Modified: 10-09-2002
  *
  * Description:
  *
@@ -246,6 +246,10 @@ int encrypt_init(char *password,int encryption_method,char *received_iv,struct c
 /* encryption routine cleanup */
 void encrypt_cleanup(int encryption_method, struct crypt_instance *CI){
 
+	/* no crypt instance */
+	if(CI==NULL)
+		return;
+
 #ifdef HAVE_LIBMCRYPT
         /* mcrypt cleanup */
         if(encryption_method!=ENCRYPT_NONE && encryption_method!=ENCRYPT_XOR)
@@ -300,6 +304,10 @@ void encrypt_buffer(char *buffer,int buffer_size, char *password, int encryption
         syslog(LOG_INFO,"Encrypting with algorithm #%d",encryption_method);
 #endif
 
+	/* no crypt instance */
+	if(CI==NULL)
+		return;
+
         /* no encryption */
         if(encryption_method==ENCRYPT_NONE)
                 return;
@@ -352,6 +360,10 @@ void decrypt_buffer(char *buffer,int buffer_size, char *password, int encryption
 #ifdef DEBUG
         syslog(LOG_INFO,"Decrypting with algorithm #%d",encryption_method);
 #endif
+
+	/* no crypt instance */
+	if(CI==NULL)
+		return;
 
         /* no encryption */
         if(encryption_method==ENCRYPT_NONE)

@@ -11,12 +11,12 @@ should be aware of.
 
 The main thing you need to be aware of is the fact that malicious
 users could potentionally use the NSCA client to send fake service
-check results to the NSCA daemon (and thus Nagios).  This is bad
-for two reasons:
+and host check results to the NSCA daemon (and thus Nagios).  This
+is bad for two reasons:
 
-1) Nagios gets fake service check results and could start 
-   generating notifications (which would annoy you) or a service
-   problems (like a security alert) could be cleared by the remote
+1) Nagios could get fake check results and start generating
+   notifications (which would annoy you) or host/service
+   problems (like security alerts) could be cleared by the remote
    user.
 
 2) Worse, since Nagios can be configured to run event handlers
@@ -27,8 +27,8 @@ for two reasons:
 Running the NSCA daemon under inetd and making use of TCP wrappers
 allows you to perform some host-based authentication of clients.
 That isn't really good enough, as any user on a blessed client
-machine could use the client to send fake service check results
-to the daemon (and thus to Nagios).
+machine could use the client to send fake check results to the
+daemon (and thus to Nagios).
 
 So what's the solution?  Encryption.
 
@@ -37,15 +37,15 @@ So what's the solution?  Encryption.
 Encrypting Communications
 -------------------------
 In order to avoid some of the security hassles associated with
-allowing remote clients to provide Nagios with service check
-results, we can encrypt the data being sent from the client to the
-NSCA daemon.
+allowing remote clients to provide Nagios with host and service
+check results, we can encrypt the data being sent from the client
+to the NSCA daemon.
 
 While encryption is good because it provides some privacy
 as to the information that is being sent from the client to
 the daemon, the main purpose of the encryption is to provide
 the daemon with a way of authenticating the client and 
-seeing if they're authorized to provide service check results.
+seeing if they're authorized to provide check results.
 
 Basically the daemon says:
 
@@ -57,15 +57,15 @@ Basically the daemon says:
 
 How The Authentication Works
 ----------------------------
-Authentication of service checks results works as follows:
+Authentication of checks results works as follows:
 
-1) The user starts the NSCA client and passes the service
-   check results to it.  A password that is used to encrypt
-   the data being sent to the NSCA daemon is stored in the 
-   send_nsca config file on the client machine.
+1) The user starts the NSCA client and passes the host and/or
+   service check results to it.  A password that is used to
+   encrypt the data being sent to the NSCA daemon is stored in
+   the send_nsca config file on the client machine.
 
-2) The NSCA client stuff the service check results into a
-   packet.
+2) The NSCA client stuff the check results into a packet (or
+   several packets if you send multiple results).
 
 3) The NSCA client computes the CRC-32 value of the packet
    its about to send off and stores that value in the packet
@@ -95,8 +95,9 @@ Authentication of service checks results works as follows:
    are stored in the packet are assumed to be from an
    authorized user.  If the calculated CRC-32 value does NOT
    match the value in the packet body, the results are assumed
-   to be from an unauthorized user and the packet (and 
-   service check results contained therein) are discarded.
+   to be from an unauthorized user and the packet (and the
+   host or service check results contained therein) are
+   discarded.
 
 
 
@@ -122,9 +123,9 @@ What This Means
    the calculated CRC-32 value match the value stored
    in the packet, the check results stored in the packet
    that are passed along to Nagios have to match a valid
-   service definition.  Nagios ignores all passive check
-   results that come in that are not associated with any
-   valid service definitions.
+   host or service definition.  Nagios ignores all passive
+   check results that come in that are not associated with
+   any valid host or service definitions.
 
 
 

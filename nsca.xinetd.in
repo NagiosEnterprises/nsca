@@ -1,5 +1,5 @@
 # default: on
-# description: NSCA
+# description: NSCA (Nagios Service Check Acceptor)
 service nsca
 {
        	flags           = REUSE

@@ -25,7 +25,7 @@
 
 
 #define PROGRAM_VERSION "2.2"
-#define MODIFICATION_DATE "07-15-2002"
+#define MODIFICATION_DATE "10-09-2002"
 
 
 #define OK		0

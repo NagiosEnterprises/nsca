@@ -4,9 +4,9 @@
  * Copyright (c) 2000-2002 Ethan Galstad (nagios@nagios.org)
  * License: GPL
  *
- * Last Modified: 07-15-2002
+ * Last Modified: 10-09-2002
  *
- * Command line: NSCA -c <config_file>
+ * Command line: NSCA -c <config_file> [mode]
  *
  * Description:
  *
@@ -44,7 +44,7 @@ static void close_command_file(void);
 static void install_child_handler(void);
 static int drop_privileges(char *,char *);
 static int write_check_result(char *,char *,int,char *,time_t);
-static void do_exit(void);
+static void do_exit(int);
 
 static enum { OPTIONS_ERROR, SINGLE_PROCESS_DAEMON, MULTI_PROCESS_DAEMON, INETD } mode=SINGLE_PROCESS_DAEMON;
 static int debug=FALSE;
@@ -116,7 +116,7 @@ int main(int argc, char **argv){
 		printf(" [mode]        = Determines how NSCA should run. Valid modes:\n");
                 printf("   --inetd     = Run as a service under inetd or xinetd\n");
                 printf("   --daemon    = Run as a standalone multi-process daemon\n");
-                printf("   --single    = Run as a standalone single-process daemon\n");
+                printf("   --single    = Run as a standalone single-process daemon (default)\n");
                 printf("\n");
                 printf("Notes:\n");
                 printf("This program is designed to accept passive service check results from\n");
@@ -130,7 +130,7 @@ int main(int argc, char **argv){
 		display_license();
 
         if(result!=OK || show_help==TRUE || show_license==TRUE || show_version==TRUE)
-		exit(STATE_UNKNOWN);
+		do_exit(STATE_UNKNOWN);
 
 
         /* open a connection to the syslog facility */
@@ -161,7 +161,7 @@ int main(int argc, char **argv){
 
         /* exit if there are errors... */
         if(result==ERROR)
-                return STATE_CRITICAL;
+                do_exit(STATE_CRITICAL);
 
         /* generate the CRC 32 table */
         generate_crc32_table();
@@ -185,10 +185,17 @@ int main(int argc, char **argv){
                 if(fork()==0){
 
                         /* we're a daemon - set up a new process group */
+                        setsid();
+
+			/* close standard file descriptors */
                         close(0);
                         close(1);
                         close(2);
-                        setsid();
+
+			/* redirect standard descriptors to /dev/null */
+			open("/dev/null",O_RDONLY);
+			open("/dev/null",O_WRONLY);
+			open("/dev/null",O_WRONLY);
 
 			/* drop privileges */
 			drop_privileges(nsca_user,nsca_group);
@@ -204,24 +211,30 @@ int main(int argc, char **argv){
 
         /* We are now running in daemon mode, or the connection handed over by inetd has
            been completed, so the parent process exits */
-        do_exit();
+        do_exit(STATE_OK);
 
+	/* keep the compilers happy... */
 	return STATE_OK;
         }
 
 
 
-/* exit */
-static void do_exit(void){
+/* exit cleanly */
+static void do_exit(int return_code){
 
         /* close the command file if its still open */
         if (command_file_fp!=NULL)
                 close_command_file();
 
-        /* clear password from memory */
+	/*** CLEAR SENSITIVE INFO FROM MEMORY ***/
+
+        /* overwrite password */
         clear_buffer(password,sizeof(password));
 
-        exit(STATE_OK);
+	/* disguise decryption method */
+	decryption_method=-1;
+
+        exit(return_code);
         }
 
 
@@ -532,7 +545,7 @@ static int find_rhand(int fd){
 
 	/* we couldn't find the read handler */
         syslog(LOG_ERR, "Handler stack corrupt - aborting");
-        do_exit();
+        do_exit(STATE_CRITICAL);
         }
 
 
@@ -548,7 +561,7 @@ static int find_whand(int fd){
 
 	/* we couldn't find the write handler */
         syslog(LOG_ERR, "Handler stack corrupt - aborting");
-        do_exit();
+        do_exit(STATE_CRITICAL);
         }
 
 
@@ -605,14 +618,14 @@ static void wait_for_connections(void) {
         /* exit if we couldn't create the socket */
         if(sock<0){
                 syslog(LOG_ERR,"Network server socket failure (%d: %s)",errno,strerror(errno));
-                exit (STATE_CRITICAL);
+                do_exit(STATE_CRITICAL);
                 }
 
         /* set the reuse address flag so we don't get errors when restarting */
         flag=1;
         if(setsockopt(sock,SOL_SOCKET,SO_REUSEADDR,(char *)&flag,sizeof(flag))<0){
                 syslog(LOG_ERR,"Could not set reuse address option on socket!\n");
-                exit(STATE_UNKNOWN);
+                do_exit(STATE_CRITICAL);
                 }
 
         myname.sin_family=AF_INET;
@@ -624,20 +637,20 @@ static void wait_for_connections(void) {
                 myname.sin_addr.s_addr=INADDR_ANY;
         else if(!my_inet_aton(server_address,&myname.sin_addr)){
                 syslog(LOG_ERR,"Server address is not a valid IP address\n");
-                exit (STATE_CRITICAL);
+                do_exit(STATE_CRITICAL);
                 }
 
 
         /* bind the address to the Internet socket */
         if(bind(sock,(struct sockaddr *)&myname,sizeof(myname))<0){
                 syslog(LOG_ERR,"Network server bind failure (%d: %s)\n",errno,strerror(errno));
-                exit (STATE_CRITICAL);
+                do_exit(STATE_CRITICAL);
                 }
 
         /* open the socket for listening */
         if(listen(sock,SOMAXCONN)<0){
                 syslog(LOG_ERR,"Network server listen failure (%d: %s)\n",errno,strerror(errno));
-                exit (STATE_CRITICAL);
+                do_exit(STATE_CRITICAL);
                 }
 
         /* log info to syslog facility */
@@ -699,7 +712,7 @@ static void accept_connection(int sock, void *unused){
 
                 /* close socket prior to exiting */
                 close(sock);
-                do_exit();
+                do_exit(STATE_CRITICAL);
                 }
 
         /* fork() if we have to... */
@@ -727,7 +740,8 @@ static void accept_connection(int sock, void *unused){
 
                 /* close socket prior to exiting */
                 close(new_sd);
-                do_exit();
+
+                do_exit(STATE_CRITICAL);
                 }
 
         nptr=(struct sockaddr_in *)&addr;
@@ -864,7 +878,7 @@ static void handle_connection_read(int sock, void *data){
                 if (mode==SINGLE_PROCESS_DAEMON)
                         return;
                 else
-                        do_exit();
+                        do_exit(STATE_OK);
                 }
 
         /* we couldn't read the correct amount of data, so bail out */
@@ -875,7 +889,7 @@ static void handle_connection_read(int sock, void *data){
                 if(mode==SINGLE_PROCESS_DAEMON)
                         return;
                 else
-                        do_exit();
+                        do_exit(STATE_CRITICAL);
                 }
 
         /* if we're single-process, we need to set things up so we handle the next packet after this one... */
@@ -979,7 +993,7 @@ static int write_check_result(char *host_name, char *svc_description, int return
                 }
 
 	if(!strcmp(svc_description,""))
-		fprintf(command_file_fp,"[%lu] PROCESS_HOST_CHECK_RESULT;%s;;%d;%s\n",(unsigned long)check_time,host_name,return_code,plugin_output);
+		fprintf(command_file_fp,"[%lu] PROCESS_HOST_CHECK_RESULT;%s;%d;%s\n",(unsigned long)check_time,host_name,return_code,plugin_output);
 	else
 		fprintf(command_file_fp,"[%lu] PROCESS_SERVICE_CHECK_RESULT;%s;%s;%d;%s\n",(unsigned long)check_time,host_name,svc_description,return_code,plugin_output);
 

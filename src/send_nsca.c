@@ -4,7 +4,7 @@
  * License: GPL
  * Copyright (c) 2000-2002 Ethan Galstad (nagios@nagios.org)
  *
- * Last Modified: 07-15-2002
+ * Last Modified: 10-09-2002
  *
  * Command line: SEND_NSCA <host_address> [-p port] [-to to_sec] [-c config_file]
  *
@@ -38,6 +38,7 @@ int critical_time=0;
 int check_critical_time=FALSE;
 int encryption_method=ENCRYPT_XOR;
 time_t packet_timestamp;
+struct crypt_instance *CI=NULL;
 
 int show_help=FALSE;
 int show_license=FALSE;
@@ -49,6 +50,7 @@ int read_config_file(char *);
 int read_init_packet(int);
 void alarm_handler(int);
 void clear_password(void);
+static void do_exit(int);
 
 
 
@@ -67,7 +69,6 @@ int main(int argc, char **argv){
 	int total_packets=0;
 	int16_t return_code;
 	u_int32_t calculated_crc32;
-        struct crypt_instance *CI;
 	char *ptr1, *ptr2, *ptr3, *ptr4;
 
 
@@ -121,7 +122,7 @@ int main(int argc, char **argv){
 		display_license();
 
         if(result!=OK || show_help==TRUE || show_license==TRUE || show_version==TRUE)
-		exit(STATE_UNKNOWN);
+		do_exit(STATE_UNKNOWN);
 
 
 
@@ -130,8 +131,8 @@ int main(int argc, char **argv){
 
 	/* exit if there are errors... */
 	if(result==ERROR){
-		printf("Error: Config file '%s' contained errors...",config_file);
-		return STATE_CRITICAL;
+		printf("Error: Config file '%s' contained errors...\n",config_file);
+		do_exit(STATE_CRITICAL);
 		}
 
 	/* generate the CRC 32 table */
@@ -150,10 +151,8 @@ int main(int argc, char **argv){
 
 	/* we couldn't connect */
 	if(result!=STATE_OK){
-
 		printf("Error: Could not connect to host %s on port %d\n",server_name,server_port);
-
-		return STATE_CRITICAL;
+		do_exit(STATE_CRITICAL);
 	        }
 
 #ifdef DEBUG
@@ -163,13 +162,9 @@ int main(int argc, char **argv){
 	/* read the initialization packet containing the IV and timestamp */
 	result=read_init_packet(sd);
 	if(result!=OK){
-
 		printf("Error: Could not read init packet from server\n");
-
-		/* close the connection */
 		close(sd);
-
-		return STATE_CRITICAL;
+		do_exit(STATE_CRITICAL);
 	        }
 
 #ifdef DEBUG
@@ -178,15 +173,10 @@ int main(int argc, char **argv){
 
 	/* initialize encryption/decryption routines with the IV we received from the server */
         if(encrypt_init(password,encryption_method,received_iv,&CI)!=OK){
-
 		printf("Error: Failed to initialize encryption libraries for method %d\n",encryption_method);
-
-		return STATE_CRITICAL;
+		close(sd);
+		do_exit(STATE_CRITICAL);
 	        }
-
-	/* clear password from memory if we can */
-	if(encryption_method!=ENCRYPT_XOR)
-		clear_buffer(password,sizeof(password));
 
 #ifdef DEBUG
 	printf("Initialized encryption routines\n");
@@ -276,7 +266,7 @@ int main(int argc, char **argv){
 		if(rc==-1){
 			printf("Error: Could not send data to host\n");
 			close(sd);
-			return STATE_UNKNOWN;
+			do_exit(STATE_UNKNOWN);
 	                }
 
 		/* for some reason we didn't send all the bytes we were supposed to */
@@ -291,14 +281,22 @@ int main(int argc, char **argv){
 	printf("Done sending data\n");
 #endif
 
-	/* clear password from memory if we haven't already */
-	if(encryption_method==ENCRYPT_XOR)
-		clear_buffer(password,sizeof(password));
-
 	/* close the connection */
 	close(sd);
 
 	printf("%d data packet(s) sent to host successfully.\n",total_packets);
+
+	/* exit cleanly */
+	do_exit(STATE_OK);
+
+	/* no compiler complaints here... */
+	return STATE_OK;
+        }
+
+
+
+/* exit */
+static void do_exit(int return_code){
 
 	/* reset the alarm */
 	alarm(0);
@@ -310,7 +308,15 @@ int main(int argc, char **argv){
 	printf("Cleaned up encryption routines\n");
 #endif
 
-	return STATE_OK;
+	/*** CLEAR SENSITIVE INFO FROM MEMORY ***/
+
+        /* overwrite password */
+        clear_buffer(password,sizeof(password));
+
+	/* disguise decryption method */
+	encryption_method=-1;
+
+        exit(return_code);
         }
 
 
@@ -443,11 +449,12 @@ int process_arguments(int argc, char **argv){
 
 
 
+/* handle timeouts */
 void alarm_handler(int sig){
 
 	printf("Error: Timeout after %d seconds\n",socket_timeout);
 
-	exit(STATE_CRITICAL);
+	do_exit(STATE_CRITICAL);
         }
 
 

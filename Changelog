@@ -6,9 +6,10 @@ NSCA Changelog
 ----------------
 - Hopefully better support for Solaris (u_int32_t)
 - Syntax changes for command line arguments
-- Added support for passive host checks (not yet
-  supported by Nagios, but will be in 2.0)
+- Added support for passive host checks (supported
+  only in Nagios 2.x and later)
 - Added sample xinetd config file (nsca.xinetd)
+- Minor mods
 
 
 2.1 - 06/10/2002
