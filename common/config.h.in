@@ -2,7 +2,7 @@
  *
  * NSCA Common Config Header File
  * Copyright (c) 2000-2003 Ethan Galstad (nagios@nagios.org)
- * Last Modified: 03-31-2003
+ * Last Modified: 07-22-2003
  *
  * License:
  *
@@ -44,6 +44,7 @@
 #define GETGROUPS_T ""
 #define RETSIGTYPE ""
 
+
 #undef SIZEOF_INT
 #undef SIZEOF_SHORT
 #undef SIZEOF_LONG
@@ -52,18 +53,34 @@
 #undef U_INT32_T_IS_USHORT
 #undef U_INT32_T_IS_UINT
 #undef U_INT32_T_IS_ULONG
+#undef U_INT32_T_IS_UINT32_T
 
 #ifdef U_INT32_T_IS_USHORT
-typedef unsigned short u_int32_t
-typedef short int32_t
+typedef unsigned short u_int32_t;
 #endif
 #ifdef U_INT32_T_IS_ULONG
-typedef unsigned long u_int32_t
-typedef long int32_t
+typedef unsigned long u_int32_t;
 #endif
 #ifdef U_INT32_T_IS_UINT
-typedef unsigned int u_int32_t
-typedef int int32_t
+typedef unsigned int u_int32_t;
+#endif
+#ifdef U_INT32_T_IS_UINT32_t
+typedef uint32_t u_int32_t;
+#endif
+
+/* stupid stuff for int32_t */
+#undef INT32_T_IS_SHORT
+#undef INT32_T_IS_INT
+#undef INT32_T_IS_LONG
+
+#ifdef INT32_T_IS_USHORT
+typedef short int32_t;
+#endif
+#ifdef INT32_T_IS_ULONG
+typedef long int32_t;
+#endif
+#ifdef INT32_T_IS_UINT
+typedef int int32_t;
 #endif
 
 
@@ -212,6 +229,16 @@ typedef int int32_t
 #undef HAVE_SYS_CONFIG_H
 #ifdef HAVE_SYS_CONFIG_H
 #include <sys/config.h>
+#endif
+
+#undef HAVE_INTTYPES_H
+#undef HAVE_STDINT_H
+#ifdef HAVE_INTTYPES_H
+#include <inttypes.h>
+#else
+#ifdef HAVE_STDINT_H
+#include <stdint.h>
+#endif
 #endif
 
 #endif

@@ -3,9 +3,10 @@ NSCA Changelog
 **************
 
 
-2.4 - ??/??/2003
+2.4 - 07/23/2003
 ----------------
-- Monitor bug fixes
+- Better support for u_int32_t detection
+- Minor bug fixes
 
 
 2.3 - 01/26/2003
