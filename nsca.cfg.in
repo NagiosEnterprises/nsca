@@ -2,7 +2,7 @@
 # Sample NSCA Daemon Config File 
 # Written by: Ethan Galstad (nagios@nagios.org)
 # 
-# Last Modified: 02-21-2002
+# Last Modified: 06-10-2002
 ####################################################
 
 
@@ -33,7 +33,27 @@ server_port=5667
 # inetd instead of as a standalone daemon and using TCP wrappers to
 # limit access.
 
-allowed_hosts=127.0.0.1,192.168.0.2
+allowed_hosts=127.0.0.1
+
+
+
+# NSCA USER
+# This determines the effective user that the NSCA daemon should run as.  
+# You can either supply a username or a UID.
+# 
+# NOTE: This option is ignored if NSCA is running under either inetd or xinetd
+
+nsca_user=@nsca_user@
+
+
+
+# NSCA GROUP
+# This determines the effective group that the NSCA daemon should run as.  
+# You can either supply a group name or a GID.
+# 
+# NOTE: This option is ignored if NSCA is running under either inetd or xinetd
+
+nsca_group=@nsca_grp@
 
 
 

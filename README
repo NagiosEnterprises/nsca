@@ -6,7 +6,7 @@ NSCA README
 Purpose
 -------
 The purpose of this addon is to allow you to send service check
-results to a central monitoring server runnin Nagios in a secure
+results to a central monitoring server running Nagios in a secure
 manner.
 
 
@@ -109,12 +109,25 @@ Running Under INETD or XINETD
 If you plan on running nsca under inetd or xinetd and making use
 of TCP wrappers, you need to do the following things:
 
+
+
 1) Add a line to your /etc/services file as follows (modify the port
    number as you see fit)
 
 	nsca            5667/tcp	# NSCA
 
-2) If your system uses the inetd superserver, add an entry to 
+
+
+2) Add entries for the NSCA daemon to either your inetd or xinetd
+   configuration files.  Which one your use will depend on which
+   superserver is installed on your system.  Both methods are described
+   below.  NOTE: If you run nsca under inetd or xinetd, the server_port
+   and allowed_hosts variables in the nrpe configuration file are
+   ignored.
+
+
+   ***** INETD *****
+   If your system uses the inetd superserver, add an entry to 
    /etc/inetd.conf as follows:
 
 
@@ -125,7 +138,9 @@ of TCP wrappers, you need to do the following things:
    - Replace <nscabin> with the path to the nsca binary on your system.
    - Replace <nscacfg> with the path to the nsca config file on your system.
 
-3) If your system uses xinetd instead of inetd, you'll probably
+
+   ***** XINETD *****
+   If your system uses xinetd instead of inetd, you'll probably
    want to create a file called 'nsca' in your /etc/xinetd.d
    directory that contains the following entries:
 
@@ -153,21 +168,21 @@ of TCP wrappers, you need to do the following things:
      are allowed to connect to the NRPE daemon.  This only works if xinetd was
      compiled with support for wrappers.
 
-4) Restart inetd or xinetd will the following command (pick the
+
+
+3) Restart inetd or xinetd will the following command (pick the
    one that is appropriate for your system:
 
 	/etc/rc.d/init.d/inet restart
 
 	/etc/rc.d/init.d/xinetd restart
 
-5) Add entries to your /etc/hosts.allow and /etc/hosts.deny
+
+
+4) Add entries to your /etc/hosts.allow and /etc/hosts.deny
    file to enable TCP wrapper protection for the nsca service.
    This is optional, although highly recommended.
 
-
-Note: If you run nrpe under inetd or xinetd, the server_port
-      and allowed_hosts variables in the nsca configuration
-      file are ignored.
 
 
 

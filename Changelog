@@ -2,6 +2,12 @@
 NSCA Changelog
 **************
 
+2.1 - 06/10/2002
+----------------
+- Fix for compiling under Solaris (Scott Cokely)
+- Added setuid/setgid option to config file
+
+
 2.0 - 02/21/2002
 ----------------
 - Name and version change

@@ -22,7 +22,7 @@ clean:
 	cd $(SRC_BASE); $(MAKE) $@ ; cd ..
 	rm -f core
 	rm -f *~ */*~
-	rm -f conf.libmcrypttest config.log config.status config.cache Makefile $(SRC_COMMON)config.h
+	rm -f conf.libmcrypttest config.log config.status config.cache nsca.cfg Makefile send_nsca.cfg $(SRC_COMMON)config.h
 
 distclean: clean
 

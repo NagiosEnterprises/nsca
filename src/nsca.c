@@ -4,7 +4,7 @@
  * Copyright (c) 2000-2002 Ethan Galstad (nagios@nagios.org)
  * License: GPL
  *
- * Last Modified: 02-21-2002
+ * Last Modified: 06-10-2002
  *
  * Command line: NSCA <config_file>
  *
@@ -42,15 +42,19 @@ static int is_an_allowed_host(char *);
 static int open_command_file(void);
 static void close_command_file(void);
 static void install_child_handler(void);
+static int drop_privileges(char *,char *);
 static int write_service_check_result(char *,char *,int,char *,time_t);
 static void do_exit(void);
 
-static enum { OPTIONS_ERROR, SINGLE_PROCESS_DAEMON, MULTI_PROCESS_DAEMON, INETD } mode;
+static enum { OPTIONS_ERROR, SINGLE_PROCESS_DAEMON, MULTI_PROCESS_DAEMON, INETD } mode=SINGLE_PROCESS_DAEMON;
 static int debug=FALSE;
 static int aggregate_writes=FALSE;
 static int decryption_method=ENCRYPT_XOR;
 static int append_to_file=FALSE;
 static unsigned long max_packet_age=30;
+
+char *nsca_user=NULL;
+char *nsca_group=NULL;
 
 int show_help=FALSE;
 int show_license=FALSE;
@@ -117,7 +121,7 @@ int main(int argc, char **argv){
                 printf("This program is designed to accept passive service check results from\n");
                 printf("remote hosts that use the send_nsca utility.  Can run as a service\n");
                 printf("under inetd or xinetd (read the docs for info on this), or as a\n");
-                printf("standalone daemon if you wish.\n");
+                printf("standalone daemon.\n");
                 printf("\n");
 
                 exit(STATE_UNKNOWN);
@@ -186,6 +190,9 @@ int main(int argc, char **argv){
                         close(1);
                         close(2);
                         setsid();
+
+			/* drop privileges */
+			drop_privileges(nsca_user,nsca_group);
 
                         /* wait for connections */
                         wait_for_connections();
@@ -373,6 +380,13 @@ static int read_config_file(char *filename){
                                 return ERROR;
                                 }
                         }
+
+                else if(!strcmp(varname,"nsca_user"))
+			nsca_user=strdup(varvalue);
+
+                else if(!strcmp(varname,"nsca_group"))
+			nsca_group=strdup(varvalue);
+
 		else{
                         syslog(LOG_ERR,"Unknown option specified in config file '%s' - Line %d\n",filename,line);
 
@@ -1071,6 +1085,79 @@ int process_arguments(int argc, char **argv){
 
  		else
 			return ERROR;
+	        }
+
+	return OK;
+        }
+
+
+
+/* drops privileges */
+static int drop_privileges(char *user, char *group){
+	uid_t uid=-1;
+	gid_t gid=-1;
+	struct group *grp;
+	struct passwd *pw;
+
+	/* set effective group ID */
+	if(group!=NULL){
+		
+		/* see if this is a group name */
+		if(strspn(group,"0123456789")<strlen(group)){
+			grp=(struct group *)getgrnam(group);
+			if(grp!=NULL)
+				gid=(gid_t)(grp->gr_gid);
+			else
+				syslog(LOG_ERR,"Warning: Could not get group entry for '%s'",group);
+		        }
+
+		/* else we were passed the GID */
+		else
+			gid=(gid_t)atoi(group);
+
+		/* set effective group ID if other than current EGID */
+		if(gid!=getegid()){
+
+			if(setgid(gid)==-1)
+				syslog(LOG_ERR,"Warning: Could not set effective GID=%d",(int)gid);
+		        }
+	        }
+
+
+	/* set effective user ID */
+	if(user!=NULL){
+		
+		/* see if this is a user name */
+		if(strspn(user,"0123456789")<strlen(user)){
+			pw=(struct passwd *)getpwnam(user);
+			if(pw!=NULL)
+				uid=(uid_t)(pw->pw_uid);
+			else
+				syslog(LOG_ERR,"Warning: Could not get passwd entry for '%s'",user);
+		        }
+
+		/* else we were passed the UID */
+		else
+			uid=(uid_t)atoi(user);
+			
+#ifdef HAVE_INITGROUPS
+
+		if(uid!=geteuid()){
+
+			/* initialize supplementary groups */
+			if(initgroups(user,gid)==-1){
+				if(errno==EPERM)
+					syslog(LOG_ERR,"Warning: Unable to change supplementary groups using initgroups()");
+				else{
+					syslog(LOG_ERR,"Warning: Possibly root user failed dropping privileges with initgroups()");
+					return ERROR;
+			                }
+	                        }
+		        }
+#endif
+
+		if(setuid(uid)==-1)
+			syslog(LOG_ERR,"Warning: Could not set effective UID=%d",(int)uid);
 	        }
 
 	return OK;

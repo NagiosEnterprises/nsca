@@ -3,6 +3,11 @@ AC_INIT(src/nsca.c)
 AC_CONFIG_HEADER(common/config.h)
 AC_PREFIX_DEFAULT(/usr/local/nagios)
 
+PKG_NAME=nsca
+PKG_VERSION="2.1"
+PKG_HOME_URL="http://www.nagios.org/"
+PKG_REL_DATE="06-10-2002"
+
 dnl Figure out how to invoke "install" and what install options to use.
 
 AC_PROG_INSTALL
@@ -16,7 +21,7 @@ dnl Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_TIME
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS(ctype.h errno.h fcntl.h netdb.h signal.h stdint.h strings.h string.h syslog.h unistd.h arpa/inet.h netinet/in.h sys/int_types.h sys/poll.h sys/types.h sys/time.h sys/resource.h sys/wait.h sys/socket.h sys/stat.h)
+AC_CHECK_HEADERS(db.h ctype.h errno.h fcntl.h grp.h netdb.h pwd.h signal.h stdint.h strings.h string.h syslog.h unistd.h arpa/inet.h netinet/in.h sys/int_types.h sys/poll.h sys/types.h sys/time.h sys/resource.h sys/wait.h sys/socket.h sys/stat.h)
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
@@ -99,11 +104,31 @@ if test x$MCRYPTLIBFOUND = xnope; then
 fi
 
 
-AC_OUTPUT(Makefile src/Makefile)
+AC_ARG_WITH(nsca_user,--with-nsca-user=<user> sets user name to run NSCA,nsca_user=$withval,nsca_user=nagios)
+AC_ARG_WITH(nsca_grp,--with-nsca-grp=<grp> sets group name to run NSCA,nsca_grp=$withval,nsca_grp=nagios)
+AC_SUBST(nsca_user)
+AC_SUBST(nsca_grp)
+
+
+AC_OUTPUT(Makefile src/Makefile nsca.cfg send_nsca.cfg)
+
+
+dnl Review options
+echo ""
+echo ""
+AC_MSG_RESULT([*** Configuration summary for $PKG_NAME $PKG_VERSION $PKG_REL_DATE ***:])
+
+echo ""
+echo " General Options:"
+echo " -------------------------"
+
+AC_MSG_RESULT([ NSCA user:  $nsca_user])
+AC_MSG_RESULT([ NSCA group: $nsca_grp])
 
 
 echo ""
 echo ""
-echo "Type 'make all' to compile the NSCA daemon and client."
+echo "Review the options above for accuracy.  If they look okay,"
+echo "type 'make all' to compile the NSCA daemon and client."
 echo ""
 

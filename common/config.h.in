@@ -2,7 +2,7 @@
  *
  * NSCA Common Config Header File
  * Copyright (c) 2000-2002 Ethan Galstad (nagios@nagios.org)
- * Last Modified: 02-21-2002
+ * Last Modified: 06-10-2002
  *
  * License:
  *
@@ -34,6 +34,7 @@
 #undef HAVE_STRDUP
 #undef HAVE_STRSTR
 #undef HAVE_STRTOUL 
+#undef HAVE_INITGROUPS
 #undef HAVE_LIMITS_H
 #undef HAVE_SYS_RESOURCE_H
 
@@ -164,6 +165,19 @@
 #include <mcrypt.h>
 #endif
 
+#undef HAVE_DB_H
+#ifdef HAVE_DB_H
+#include <db.h>
+#endif
 
+#undef HAVE_PWD_H
+#ifdef HAVE_PWD_H
+#include <pwd.h>
+#endif
+ 
+#undef HAVE_GRP_H
+#ifdef HAVE_GRP_H
+#include <grp.h>
+#endif
 
 #endif
