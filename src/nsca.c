@@ -759,6 +759,7 @@ static void accept_connection(int sock, void *unused){
 
                 /* log error to syslog facility */
                 syslog(LOG_ERR,"Host %s is not allowed to talk to us!", inet_ntoa(nptr->sin_addr));
+		close(new_sd);
 		if(mode==MULTI_PROCESS_DAEMON)
 			do_exit(STATE_CRITICAL);
  		return;
