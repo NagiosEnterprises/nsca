@@ -4,9 +4,9 @@
  * Copyright (c) 2000-2002 Ethan Galstad (nagios@nagios.org)
  * License: GPL
  *
- * Last Modified: 06-10-2002
+ * Last Modified: 07-08-2002
  *
- * Command line: NSCA <config_file>
+ * Command line: NSCA -c <config_file>
  *
  * Description:
  *
@@ -58,6 +58,7 @@ char *nsca_group=NULL;
 
 int show_help=FALSE;
 int show_license=FALSE;
+int show_version=FALSE;
 
 static FILE *command_file_fp=NULL;
 
@@ -87,7 +88,7 @@ int main(int argc, char **argv){
 	/* process command-line arguments */
 	result=process_arguments(argc,argv);
 
-        if(result!=OK || show_help==TRUE || show_license==TRUE){
+        if(result!=OK || show_help==TRUE || show_license==TRUE || show_version==TRUE){
 
 		if(result!=OK)
 			printf("Incorrect command line arguments supplied\n");
@@ -108,14 +109,14 @@ int main(int argc, char **argv){
 	        }
 
 	if(result!=OK || show_help==TRUE){
-                printf("Usage: %s <mode> [-c config_file]\n",argv[0]);
+                printf("Usage: %s -c <config_file> [mode]\n",argv[0]);
                 printf("\n");
                 printf("Options:\n");
-		printf(" <mode>        = Determines how NSCA should run. Valid modes:\n");
-                printf("   -i          = Run as a service under inetd or xinetd\n");
-                printf("   -d          = Run as a standalone multi-process daemon\n");
-                printf("   -s          = Run as a standalone single-process daemon\n");
-		printf(" [config_file] = Name of config file to use\n");
+		printf(" <config_file> = Name of config file to use\n");
+		printf(" [mode]        = Determines how NSCA should run. Valid modes:\n");
+                printf("   --inetd     = Run as a service under inetd or xinetd\n");
+                printf("   --daemon    = Run as a standalone multi-process daemon\n");
+                printf("   --single    = Run as a standalone single-process daemon\n");
                 printf("\n");
                 printf("Notes:\n");
                 printf("This program is designed to accept passive service check results from\n");
@@ -123,15 +124,13 @@ int main(int argc, char **argv){
                 printf("under inetd or xinetd (read the docs for info on this), or as a\n");
                 printf("standalone daemon.\n");
                 printf("\n");
-
-                exit(STATE_UNKNOWN);
                 }
 
-	if(show_license==TRUE){
-
+	if(show_license==TRUE)
 		display_license();
+
+        if(result!=OK || show_help==TRUE || show_license==TRUE || show_version==TRUE)
 		exit(STATE_UNKNOWN);
-	        }
 
 
         /* open a connection to the syslog facility */
@@ -1060,27 +1059,30 @@ int process_arguments(int argc, char **argv){
 		else if(!strcmp(argv[x-1],"-l") || !strcmp(argv[x-1],"--license"))
 			show_license=TRUE;
 
-		else if(!strcmp(argv[x-1],"-d"))
+		/* show version */
+		else if(!strcmp(argv[x-1],"-V") || !strcmp(argv[x-1],"--version"))
+			show_version=TRUE;
+
+		else if(!strcmp(argv[x-1],"-d") || !strcmp(argv[x-1],"--daemon"))
                         mode=MULTI_PROCESS_DAEMON;
 
-                else if(!strcmp(argv[x-1],"-s"))
+                else if(!strcmp(argv[x-1],"-s") || !strcmp(argv[x-1],"--single"))
                         mode=SINGLE_PROCESS_DAEMON;
 
-                else if(!strcmp(argv[x-1],"-i"))
+                else if(!strcmp(argv[x-1],"-i") || !strcmp(argv[x-1],"--inetd"))
                         mode=INETD;
 
 		/* config file */
-		else if(!strcmp(argv[x-1],"-c") || x==3){
+		else if(!strcmp(argv[x-1],"-c")){
 
-			if(!strcmp(argv[x-1],"-c")){
-				if(x>=argc)
-					return ERROR;
+			if(x<argc){
+				/* grab the config file */
+				strncpy(config_file,argv[x-1],sizeof(config_file)-1);
+				config_file[sizeof(config_file)-1]='\0';
 				x++;
 			        }
-
-			/* grab the config file */
-			strncpy(config_file,argv[x-1],sizeof(config_file)-1);
-			config_file[sizeof(config_file)-1]='\0';
+			else
+				return ERROR;
  		        }
 
  		else

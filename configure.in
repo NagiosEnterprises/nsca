@@ -4,9 +4,9 @@ AC_CONFIG_HEADER(common/config.h)
 AC_PREFIX_DEFAULT(/usr/local/nagios)
 
 PKG_NAME=nsca
-PKG_VERSION="2.1"
+PKG_VERSION="2.2"
 PKG_HOME_URL="http://www.nagios.org/"
-PKG_REL_DATE="06-10-2002"
+PKG_REL_DATE="07-08-2002"
 
 dnl Figure out how to invoke "install" and what install options to use.
 
@@ -21,7 +21,7 @@ dnl Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_TIME
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS(db.h ctype.h errno.h fcntl.h grp.h netdb.h pwd.h signal.h stdint.h strings.h string.h syslog.h unistd.h arpa/inet.h netinet/in.h sys/int_types.h sys/poll.h sys/types.h sys/time.h sys/resource.h sys/wait.h sys/socket.h sys/stat.h)
+AC_CHECK_HEADERS(db.h ctype.h errno.h fcntl.h grp.h inttypes.h netdb.h pwd.h signal.h stdint.h strings.h string.h syslog.h unistd.h arpa/inet.h netinet/in.h sys/config.h sys/int_types.h sys/poll.h sys/types.h sys/time.h sys/resource.h sys/socket.h sys/stat.h sys/wait.h)
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST

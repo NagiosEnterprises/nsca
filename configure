@@ -536,9 +536,9 @@ fi
 
 
 PKG_NAME=nsca
-PKG_VERSION="2.1"
+PKG_VERSION="2.2"
 PKG_HOME_URL="http://www.nagios.org/"
-PKG_REL_DATE="06-10-2002"
+PKG_REL_DATE="07-08-2002"
 
 
 ac_aux_dir=
@@ -1137,7 +1137,7 @@ EOF
 
 fi
 
-for ac_hdr in db.h ctype.h errno.h fcntl.h grp.h netdb.h pwd.h signal.h stdint.h strings.h string.h syslog.h unistd.h arpa/inet.h netinet/in.h sys/int_types.h sys/poll.h sys/types.h sys/time.h sys/resource.h sys/wait.h sys/socket.h sys/stat.h
+for ac_hdr in db.h ctype.h errno.h fcntl.h grp.h inttypes.h netdb.h pwd.h signal.h stdint.h strings.h string.h syslog.h unistd.h arpa/inet.h netinet/in.h sys/config.h sys/int_types.h sys/poll.h sys/types.h sys/time.h sys/resource.h sys/socket.h sys/stat.h sys/wait.h
 do
 ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6

@@ -2,7 +2,7 @@
  *
  * NSCA Common Config Header File
  * Copyright (c) 2000-2002 Ethan Galstad (nagios@nagios.org)
- * Last Modified: 06-10-2002
+ * Last Modified: 07-09-2002
  *
  * License:
  *
@@ -27,7 +27,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-
 
 #undef STDC_HEADERS
 #undef HAVE_SYSLOG_H
@@ -178,6 +177,16 @@
 #undef HAVE_GRP_H
 #ifdef HAVE_GRP_H
 #include <grp.h>
+#endif
+ 
+#undef HAVE_INTTYPES_H
+#ifdef HAVE_INTTYPES_H
+#include <inttypes.h>
+#endif
+
+#undef HAVE_SYS_CONFIG_H
+#ifdef HAVE_SYS_CONFIG_H
+#include <sys/config.h>
 #endif
 
 #endif

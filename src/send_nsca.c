@@ -4,7 +4,7 @@
  * License: GPL
  * Copyright (c) 2000-2002 Ethan Galstad (nagios@nagios.org)
  *
- * Last Modified: 06-10-2002
+ * Last Modified: 07-08-2002
  *
  * Command line: SEND_NSCA <host_address> [-p port] [-to to_sec] [-c config_file]
  *
@@ -41,6 +41,7 @@ time_t packet_timestamp;
 
 int show_help=FALSE;
 int show_license=FALSE;
+int show_version=FALSE;
 
 
 int process_arguments(int,char **);
@@ -72,7 +73,7 @@ int main(int argc, char **argv){
 	/* process command-line arguments */
 	result=process_arguments(argc,argv);
 
-	if(result!=OK || show_help==TRUE || show_license==TRUE){
+	if(result!=OK || show_help==TRUE || show_license==TRUE || show_version==TRUE){
 
 		if(result!=OK)
 			printf("Incorrect command line arguments supplied\n");
@@ -92,7 +93,7 @@ int main(int argc, char **argv){
 	        }
 
 	if(result!=OK || show_help==TRUE){
-		printf("Usage: %s <host_address> [-p port] [-to to_sec] [-d delim] [-c config_file]\n",argv[0]);
+		printf("Usage: %s -H <host_address> [-p port] [-to to_sec] [-d delim] [-c config_file]\n",argv[0]);
 		printf("\n");
 		printf("Options:\n");
 		printf(" <host_address> = The IP address of the host running the NSCA daemon\n");
@@ -110,16 +111,15 @@ int main(int argc, char **argv){
 		printf("\n");
 		printf("<host_name>[tab]<svc_description>[tab]<return_code>[tab]<plugin_output>[newline]\n");
 		printf("\n");
-
-		return STATE_UNKNOWN;
 	        }
 
-	if(show_license==TRUE){
-
+	if(show_license==TRUE)
 		display_license();
 
-		return STATE_UNKNOWN;
-	        }
+        if(result!=OK || show_help==TRUE || show_license==TRUE || show_version==TRUE)
+		exit(STATE_UNKNOWN);
+
+
 
 	/* read the config file */
 	result=read_config_file(config_file);	
@@ -355,6 +355,10 @@ int process_arguments(int argc, char **argv){
 		return OK;
 	        }
 
+	/* support old command-line syntax (host name first argument) */
+	strncpy(server_name,argv[1],sizeof(server_name)-1);
+	server_name[sizeof(server_name)-1]='\x0';
+
 	/* process arguments (host name is usually 1st argument) */
 	for(x=2;x<=argc;x++){
 
@@ -366,10 +370,19 @@ int process_arguments(int argc, char **argv){
 		else if(!strcmp(argv[x-1],"-l") || !strcmp(argv[x-1],"--license"))
 			show_license=TRUE;
 
+		/* show version */
+		else if(!strcmp(argv[x-1],"-V") || !strcmp(argv[x-1],"--version"))
+			show_version=TRUE;
+
 		/* server name/address */
-		else if(x==2){
-			strncpy(server_name,argv[1],sizeof(server_name)-1);
-			server_name[sizeof(server_name)-1]='\x0';
+		else if(!strcmp(argv[x-1],"-H")){
+			if(x<argc){
+				strncpy(server_name,argv[x],sizeof(server_name)-1);
+				server_name[sizeof(server_name)-1]='\x0';
+				x++;
+			        }
+			else
+				return ERROR;
 		        }
 
 		/* port to connect to */
@@ -416,7 +429,7 @@ int process_arguments(int argc, char **argv){
 				return ERROR;
 		        }
 
-		else
+		else if(x>2)
 			return ERROR;
 	        }
 
