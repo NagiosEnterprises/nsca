@@ -7,6 +7,7 @@ NSCA Changelog
 ----------------
 - Host names can now be used in allowed host list
 - Native TCP wrapper support in daemon mode
+- Memory leak fix and cleanup (Mark Ferlatte)
 
 
 2.4 - 07/23/2003

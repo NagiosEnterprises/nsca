@@ -5,7 +5,7 @@
  * License: GPL
  * Copyright (c) 2000-2003 Ethan Galstad (nagios@nagios.org)
  *
- * Last Modified: 10-15-2003
+ * Last Modified: 10-24-2003
  *
  * Description:
  *
@@ -252,8 +252,17 @@ void encrypt_cleanup(int encryption_method, struct crypt_instance *CI){
 
 #ifdef HAVE_LIBMCRYPT
         /* mcrypt cleanup */
-        if(encryption_method!=ENCRYPT_NONE && encryption_method!=ENCRYPT_XOR)
-                mcrypt_generic_end(CI->td);
+        if(encryption_method!=ENCRYPT_NONE && encryption_method!=ENCRYPT_XOR){
+        	mcrypt_generic_end(CI->td);
+		free(CI->key);
+		CI->key=NULL;
+		free(CI->IV);
+		CI->IV=NULL;
+		free(CI->mcrypt_algorithm);
+		CI->mcrypt_algorithm=NULL;
+		free(CI->mcrypt_mode);
+		CI->mcrypt_mode=NULL;
+		}
 #endif
 
         free(CI);
