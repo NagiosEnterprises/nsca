@@ -4,7 +4,7 @@
  * Copyright (c) 2000-2003 Ethan Galstad (nagios@nagios.org)
  * License: GPL
  *
- * Last Modified: 07-23-2003
+ * Last Modified: 09-09-2003
  *
  * Command line: NSCA -c <config_file> [mode]
  *
@@ -1006,18 +1006,53 @@ static void handle_connection_read(int sock, void *data){
 
 /* checks to see if a given host is allowed to talk to us */
 static int is_an_allowed_host(char *connecting_host){
-        char temp_buffer[MAX_INPUT_BUFFER];
-        char *temp_ptr;
+	char temp_buffer[MAX_INPUT_BUFFER];
+	char *temp_ptr;
+	int result=0;
+        struct hostent *myhost;
+	char **pptr;
+	char resolved_addr[INET6_ADDRSTRLEN];
 
-        strncpy(temp_buffer,allowed_hosts,sizeof(temp_buffer));
-        temp_buffer[sizeof(temp_buffer)-1]='\0';
+	/* try and match IP addresses first */
+	strncpy(temp_buffer,allowed_hosts,sizeof(temp_buffer));
+	temp_buffer[sizeof(temp_buffer)-1]='\x0';
 
-        for(temp_ptr=strtok(temp_buffer,",");temp_ptr!=NULL;temp_ptr=strtok(NULL,",")){
-                if(!strcmp(connecting_host,temp_ptr))
-                        return 1;
-                }
+	for(temp_ptr=strtok(temp_buffer,",");temp_ptr!=NULL;temp_ptr=strtok(NULL,",")){
 
-        return 0;
+		if(!strcmp(connecting_host,temp_ptr)){
+			result=1;
+			break;
+		        }
+	        }
+
+	/* try DNS lookups if needed */
+	if(result==0){
+
+		strncpy(temp_buffer,allowed_hosts,sizeof(temp_buffer));
+		temp_buffer[sizeof(temp_buffer)-1]='\x0';
+
+		for(temp_ptr=strtok(temp_buffer,",");temp_ptr!=NULL;temp_ptr=strtok(NULL,",")){
+
+			myhost=gethostbyname(temp_ptr);
+			if(myhost!=NULL){
+
+				/* check all addresses for the host... */
+				for(pptr=myhost->h_addr_list;*pptr!=NULL;pptr++){
+
+					inet_ntop(myhost->h_addrtype,*pptr,resolved_addr,sizeof(resolved_addr));
+					if(!strcmp(resolved_addr,connecting_host)){
+						result=1;
+						break;
+					        }
+					}
+			        }
+
+			if(result==1)
+				break;
+		        }
+	        }
+
+	return result;
         }
 
 

@@ -3,6 +3,11 @@ NSCA Changelog
 **************
 
 
+2.5 - ??/??/2003
+----------------
+- Host names can now be used in allowed host list
+
+
 2.4 - 07/23/2003
 ----------------
 - Better support for u_int32_t detection
