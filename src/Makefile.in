@@ -1,0 +1,35 @@
+###############################
+# Makefile for NSCA
+#
+# Last Modified: 08-26-2000
+###############################
+
+
+# Source code directories
+SRC_COMMON=../common
+
+CC=@CC@
+CFLAGS=@CFLAGS@ @DEFS@
+LDFLAGS=@LDFLAGS@ @LIBS@
+SOCKETLIBS=@SOCKETLIBS@
+
+CP=@CP@
+
+
+all: nsca send_nsca
+
+nsca: nsca.c netutils.c netutils.h utils.c utils.h $(SRC_COMMON)/common.h $(SRC_COMMON)/config.h
+	$(CC) $(CFLAGS) $(LDFLAGS) $(SOCKETLIBS) nsca.c netutils.c utils.c -o $@
+
+send_nsca: send_nsca.c netutils.c netutils.h utils.c utils.h $(SRC_COMMON)/common.h $(SRC_COMMON)/config.h
+	$(CC) $(CFLAGS) $(LDFLAGS) $(SOCKETLIBS) send_nsca.c netutils.c utils.c -o $@
+
+clean:
+	rm -f core \
+	nsca send_nsca
+
+distclean: clean
+	rm -f *~ */*~
+	rm -f Makefile
+
+devclean: distclean

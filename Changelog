@@ -1,0 +1,36 @@
+**************
+NSCA Changelog
+**************
+
+1.2 - 06/23/2001
+----------------
+- Name change
+- Version numbering change
+
+
+1.1.1 - 04/26/2001
+------------------
+- Configure script bug fix
+
+
+1.1.0 - 02/24/2001
+------------------
+- Added encryption routines (using libmcrypt)
+- Minor code enhancements/cleanups
+
+
+1.0b3 - 12/21/2000
+------------------
+- Removed lock file code, as 0.0.7 uses a named pipe
+- Documented aggregated_writes option
+
+
+1.0b2 - 08/26/2000
+------------------
+- Added option to use write lock when updating external
+  command file
+
+
+1.0b1 - 04/17/2000
+------------------
+- Initial cut

@@ -1,0 +1,33 @@
+###############################
+# Makefile for NSCA
+#
+# Last Modified: 12-21-2000
+###############################
+
+
+# Source code directories
+SRC_BASE=./src/
+SRC_COMMON=./common/
+
+all:	
+	cd $(SRC_BASE); $(MAKE) $@ ; cd ..
+
+nsca:
+	cd $(SRC_BASE); $(MAKE) $@ ; cd ..
+
+send_nsca:
+	cd $(SRC_BASE); $(MAKE) $@ ; cd ..
+
+
+clean:
+	cd $(SRC_BASE); $(MAKE) $@ ; cd ..
+	rm -f core
+
+distclean: clean
+	cd $(SRC_BASE); $(MAKE) $@ ; cd ..
+	rm -f *~ */*~
+	rm -f config.log config.status config.cache Makefile \
+	$(SRC_COMMON)/config.h \
+
+devclean: distclean
+

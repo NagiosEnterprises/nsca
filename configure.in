@@ -1,0 +1,114 @@
+dnl Process this file with autoconf to produce a configure script.
+AC_INIT(src/nsca.c)
+AC_CONFIG_HEADER(common/config.h)
+AC_PREFIX_DEFAULT(/usr/local/nagios)
+
+dnl Figure out how to invoke "install" and what install options to use.
+
+AC_PROG_INSTALL
+AC_SUBST(INSTALL)
+
+dnl Checks for programs.
+AC_PROG_CC
+AC_PROG_MAKE_SET
+
+dnl Checks for header files.
+AC_HEADER_STDC
+AC_HEADER_TIME
+AC_HEADER_SYS_WAIT
+AC_CHECK_HEADERS(ctype.h errno.h fcntl.h netdb.h signal.h strings.h string.h syslog.h unistd.h arpa/inet.h netinet/in.h sys/types.h sys/time.h sys/resource.h sys/wait.h sys/socket.h sys/stat.h)
+
+dnl Checks for typedefs, structures, and compiler characteristics.
+AC_C_CONST
+AC_STRUCT_TM
+AC_TYPE_MODE_T
+AC_TYPE_PID_T
+AC_TYPE_SIZE_T
+AC_TYPE_SIGNAL
+AC_TYPE_GETGROUPS
+
+dnl Checks for library functions.
+AC_CHECK_LIB(nsl,main,SOCKETLIBS="$SOCKETLIBS -lnsl")
+AC_CHECK_LIB(socket,socket,SOCKETLIBS="$SOCKETLIBS -lsocket")
+AC_SUBST(SOCKETLIBS)
+AC_CHECK_FUNCS(strdup strstr strtoul)
+
+AC_MSG_CHECKING(for type of socket size)
+AC_TRY_COMPILE([#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+],
+[int a = send(1, (const void *)0, (size_t *) 0, (int *) 0);],
+[AC_DEFINE(SOCKET_SIZE_TYPE, size_t) AC_MSG_RESULT(size_t)],
+[AC_DEFINE(SOCKET_SIZE_TYPE, int) AC_MSG_RESULT(int)])
+
+dnl Optional mcrypt library and include paths
+AC_ARG_WITH(mcrypt-lib,--with-mcrypt-lib=DIR sets location of the mcrypt client library,[
+	LDFLAGS="${LDFLAGS} -L${withval}"
+	LD_RUN_PATH="${withval}${LD_RUN_PATH:+:}${LD_RUN_PATH}"
+	])
+AC_ARG_WITH(mcrypt-inc,--with-mcrypt-inc=DIR sets location of the mcrypt client include files,[
+	CFLAGS="${CFLAGS} -I${withval}"
+	])
+
+dnl Check for ltdl library
+AC_CHECK_LIB(ltdl,main)
+
+dnl Check for mcrypt library
+MCRYPTLIBFOUND=nope
+AC_CHECK_LIB(mcrypt,mcrypt,MCRYPTLIBFOUND=yep)
+
+dnl added for automatic use of mcrypt stark@suse.de
+if test $MCRYPTLIBFOUND = yep; then
+	CFLAGS="${CFLAGS} -DHAVE_LIBMCRYPT"
+	LDFLAGS="${LDFLAGS} -lmcrypt"
+fi
+
+dnl Did we find the mcrypt library?
+if test x$MCRYPTLIBFOUND = xnope; then
+	echo ""
+	echo ""
+	echo "**************************************************************"
+	echo "MCRYPT LIBRARY (libmcrypt) COULD NOT BE LOCATED..."
+	echo ""
+	echo "The mcrypt library could not be located on your system.  This"
+	echo "means that you will NOT be able to use any crypto algorithms"
+	echo "in the NSCA client or daemon."
+	echo ""
+	echo "Read the SECURITY text file for more information on why"
+	echo "encryption is important to ensuring that the NSCA daemon is"
+	echo "not abused by malicious users."
+	echo ""
+	echo "You can download libmcrypt from:"
+	echo ""
+	echo "        http://mcrypt.hellug.gr/"
+	echo ""
+	echo ""
+	echo "NOTE: After you install the MCRYPT library on your system:"
+	echo ""
+	echo "      1. Make sure /etc/ld.so.conf has an entry for the"
+	echo "         directory in which the MCRYPT library is installed."
+	echo "      2. Run 'ldconfig' to update the run-time linker options."
+	echo "      3. Run 'make devclean' in the NSCA distribution to clean"
+	echo "         out any old references to your previous compile."
+	echo "      4. Rerun the configure script."
+	echo ""
+	echo "**************************************************************"
+	echo ""
+fi
+
+
+AC_OUTPUT(Makefile src/Makefile)
+
+
+echo ""
+echo ""
+echo "Type 'make all' to compile the NSCA client and daemon."
+echo ""
+
+
+
+
+
+
+
