@@ -16,8 +16,8 @@ server_port=@nsca_port@
 
 
 # SERVER ADDRESS
-# Address that nrpe has to bind to in case there are
-# more as one interface and we do not want nrpe to bind
+# Address that NSCA has to bind to in case there are
+# more as one interface and we do not want NSCA to bind
 # (thus listen) on all interfaces.
 
 #server_address=192.168.1.1
