@@ -132,16 +132,23 @@ of TCP wrappers, you need to do the following things:
 
 
    ***** INETD *****
-   If your system uses the inetd superserver, add an entry to 
-   /etc/inetd.conf as follows:
-
+   If your system uses the inetd superserver WITH tcpwrappers, add an
+   entry to /etc/inetd.conf as follows:
 
 	nsca    stream  tcp     nowait  <user> /usr/sbin/tcpd <nscabin> -c <nscacfg> --inetd
 
+   If your system uses the inetd superserver WITHOUT tcpwrappers, add an
+   entry to /etc/inetd.conf as follows:
+
+	nsca 	stream 	tcp 	nowait 	<user> <nscabin> -c <nscacfg> --inetd
+
 
    - Replace <user> with the name of the user that nsca server should run as.
+	Example: nagios
    - Replace <nscabin> with the path to the nsca binary on your system.
+	Example: /usr/local/nagios/nsca
    - Replace <nscacfg> with the path to the nsca config file on your system.
+	Example: /usr/local/nagios/nsca.cfg
 
 
    ***** XINETD *****
@@ -174,8 +181,8 @@ of TCP wrappers, you need to do the following things:
    - Replace <nscabin> with the path to the nsca binary on your system.
    - Replace <nscacfg> with the path to the nsca config file on your system.
    - Replace the <ipaddress> fields with the IP addresses of hosts which
-     are allowed to connect to the NRPE daemon.  This only works if xinetd was
-     compiled with support for wrappers.
+     are allowed to connect to the NSCA daemon.  This only works if xinetd was
+     compiled with support for tcpwrappers.
 
 
 
