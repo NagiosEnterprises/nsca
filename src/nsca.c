@@ -4,7 +4,7 @@
  * Copyright (c) 2000-2002 Ethan Galstad (nagios@nagios.org)
  * License: GPL
  *
- * Last Modified: 10-09-2002
+ * Last Modified: 11-19-2002
  *
  * Command line: NSCA -c <config_file> [mode]
  *
@@ -119,7 +119,7 @@ int main(int argc, char **argv){
                 printf("   --single    = Run as a standalone single-process daemon (default)\n");
                 printf("\n");
                 printf("Notes:\n");
-                printf("This program is designed to accept passive service check results from\n");
+                printf("This program is designed to accept passive check results from\n");
                 printf("remote hosts that use the send_nsca utility.  Can run as a service\n");
                 printf("under inetd or xinetd (read the docs for info on this), or as a\n");
                 printf("standalone daemon.\n");
@@ -712,7 +712,7 @@ static void accept_connection(int sock, void *unused){
 
                 /* close socket prior to exiting */
                 close(sock);
-                do_exit(STATE_CRITICAL);
+		return;
                 }
 
         /* fork() if we have to... */
@@ -740,8 +740,9 @@ static void accept_connection(int sock, void *unused){
 
                 /* close socket prior to exiting */
                 close(new_sd);
-
-                do_exit(STATE_CRITICAL);
+		if(mode==MULTI_PROCESS_DAEMON)
+			do_exit(STATE_CRITICAL);
+		return;
                 }
 
         nptr=(struct sockaddr_in *)&addr;
@@ -758,7 +759,10 @@ static void accept_connection(int sock, void *unused){
 
                 /* log error to syslog facility */
                 syslog(LOG_ERR,"Host %s is not allowed to talk to us!", inet_ntoa(nptr->sin_addr));
-                }
+		if(mode==MULTI_PROCESS_DAEMON)
+			do_exit(STATE_CRITICAL);
+ 		return;
+	        }
 	else{
 
                 /* log info to syslog facility */
@@ -797,6 +801,8 @@ static void handle_connection(int sock, void *data){
         /* initialize encryption/decryption routines (server generates the IV to use and send to the client) */
         if(encrypt_init(password,decryption_method,NULL,&CI)!=OK){
                 close(sock);
+		if(mode==MULTI_PROCESS_DAEMON)
+			do_exit(STATE_CRITICAL);
                 return;
                 }
 
@@ -814,6 +820,8 @@ static void handle_connection(int sock, void *data){
                 syslog(LOG_ERR,"Could not send init packet to client\n");
                 encrypt_cleanup(decryption_method,CI);
                 close(sock);
+		if(mode==MULTI_PROCESS_DAEMON)
+			do_exit(STATE_CRITICAL);
                 return;
                 }
 
@@ -822,6 +830,8 @@ static void handle_connection(int sock, void *data){
                 syslog(LOG_ERR,"Only able to send %d of %d bytes of init packet to client\n",rc,sizeof(send_packet));
                 encrypt_cleanup(decryption_method,CI);
                 close(sock);
+		if(mode==MULTI_PROCESS_DAEMON)
+			do_exit(STATE_CRITICAL);
                 return;
                 }
 
@@ -829,6 +839,8 @@ static void handle_connection(int sock, void *data){
         if(aggregate_writes==TRUE && !command_file_fp){
                 if(open_command_file()==ERROR){
                         close(sock);
+			if(mode==MULTI_PROCESS_DAEMON)
+				do_exit(STATE_CRITICAL);
                         return;
                         }
                 }
@@ -872,10 +884,10 @@ static void handle_connection_read(int sock, void *data){
         /* recv() error or client disconnect */
         if(rc<=0){
                 if(debug==TRUE)
-                        syslog(LOG_ERR,"End of connection or could not read request from client...");
+                        syslog(LOG_ERR,"End of connection...");
                 encrypt_cleanup(decryption_method, CI);
                 close(sock);
-                if (mode==SINGLE_PROCESS_DAEMON)
+                if(mode==SINGLE_PROCESS_DAEMON)
                         return;
                 else
                         do_exit(STATE_OK);
@@ -886,6 +898,7 @@ static void handle_connection_read(int sock, void *data){
                 syslog(LOG_ERR,"Data sent from client was too short (%d < %d), aborting...",bytes_to_recv,sizeof(receive_packet));
                 encrypt_cleanup(decryption_method, CI);
                 close(sock);
+		return;
                 if(mode==SINGLE_PROCESS_DAEMON)
                         return;
                 else
@@ -902,7 +915,12 @@ static void handle_connection_read(int sock, void *data){
         /* make sure this is the right type of packet */
         if(ntohs(receive_packet.packet_version)!=NSCA_PACKET_VERSION_3){
                 syslog(LOG_ERR,"Received invalid packet type/version from client - possibly due to client using wrong password or crypto algorithm?");
-                return;
+		/*return;*/
+		close(sock);
+                if(mode==SINGLE_PROCESS_DAEMON)
+                        return;
+                else
+                        do_exit(STATE_OK);
                 }
 
         /* check the crc 32 value */
@@ -911,21 +929,36 @@ static void handle_connection_read(int sock, void *data){
         calculated_crc32=calculate_crc32((char *)&receive_packet,sizeof(receive_packet));
         if(packet_crc32!=calculated_crc32){
                 syslog(LOG_ERR,"Dropping packet with invalid CRC32 - possibly due to client using wrong password or crypto algorithm?");
-                return;
-                }
+                /*return;*/
+		close(sock);
+                if(mode==SINGLE_PROCESS_DAEMON)
+                        return;
+                else
+                        do_exit(STATE_OK);
+                 }
 
         /* check the timestamp in the packet */
         packet_time=(time_t)ntohl(receive_packet.timestamp);
         time(&current_time);
         if(packet_time>current_time){
                 syslog(LOG_ERR,"Dropping packet with future timestamp.");
-                return;
+                /*return;*/
+		close(sock);
+                if(mode==SINGLE_PROCESS_DAEMON)
+                        return;
+                else
+                        do_exit(STATE_OK);
                 }
 	else{
                 packet_age=(unsigned long)(current_time-packet_time);
                 if(packet_age > max_packet_age){
                         syslog(LOG_ERR,"Dropping packet with stale timestamp - packet was %lu seconds old.",packet_age);
-                        return;
+                        /*return;*/
+			close(sock);
+			if(mode==SINGLE_PROCESS_DAEMON)
+				return;
+			else
+				do_exit(STATE_OK);
                         }
                 }
 

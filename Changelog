@@ -9,7 +9,7 @@ NSCA Changelog
 - Added support for passive host checks (supported
   only in Nagios 2.x and later)
 - Added sample xinetd config file (nsca.xinetd)
-- Minor mods
+- Minor mods and bug fixes
 
 
 2.1 - 06/10/2002
