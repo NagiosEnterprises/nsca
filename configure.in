@@ -6,7 +6,7 @@ AC_PREFIX_DEFAULT(/usr/local/nagios)
 PKG_NAME=nsca
 PKG_VERSION="2.2"
 PKG_HOME_URL="http://www.nagios.org/"
-PKG_REL_DATE="07-08-2002"
+PKG_REL_DATE="07-15-2002"
 
 dnl Figure out how to invoke "install" and what install options to use.
 
@@ -110,7 +110,7 @@ AC_SUBST(nsca_user)
 AC_SUBST(nsca_grp)
 
 
-AC_OUTPUT(Makefile src/Makefile nsca.cfg send_nsca.cfg)
+AC_OUTPUT(Makefile src/Makefile nsca.cfg send_nsca.cfg nsca.xinetd)
 
 
 dnl Review options

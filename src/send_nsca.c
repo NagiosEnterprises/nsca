@@ -4,7 +4,7 @@
  * License: GPL
  * Copyright (c) 2000-2002 Ethan Galstad (nagios@nagios.org)
  *
- * Last Modified: 07-08-2002
+ * Last Modified: 07-15-2002
  *
  * Command line: SEND_NSCA <host_address> [-p port] [-to to_sec] [-c config_file]
  *
@@ -68,6 +68,7 @@ int main(int argc, char **argv){
 	int16_t return_code;
 	u_int32_t calculated_crc32;
         struct crypt_instance *CI;
+	char *ptr1, *ptr2, *ptr3, *ptr4;
 
 
 	/* process command-line arguments */
@@ -104,12 +105,15 @@ int main(int argc, char **argv){
 		printf(" [config_file]  = Name of config file to use\n");
 		printf("\n");
 		printf("Note:\n");
-		printf("This utility is used to send passive service check results to the NSCA daemon.\n");
-		printf("Servce check data that is to be sent to the NSCA daemon is read from standard\n");
-		printf("input. Service check information is in the following format (tab-delimited\n");
-		printf("unless overriden with -d command line argument, one entry per line):\n");
+		printf("This utility is used to send passive check results to the NSCA daemon.  Host and\n");
+		printf("Service check data that is to be sent to the NSCA daemon is read from standard\n");
+		printf("input. Input should be provided in the following format (tab-delimited unless\n");
+		printf("overriden with -d command line argument, one entry per line):\n");
 		printf("\n");
-		printf("<host_name>[tab]<svc_description>[tab]<return_code>[tab]<plugin_output>[newline]\n");
+		printf("Service Checks:\n");
+		printf("<host_name>[tab]<svc_description>[tab]<return_code>[tab]<plugin_output>[newline]\n\n");
+		printf("Host Checks:\n");
+		printf("<host_name>[tab]<return_code>[tab]<plugin_output>[newline]\n");
 		printf("\n");
 	        }
 
@@ -203,40 +207,41 @@ int main(int argc, char **argv){
 			continue;
 
 		/* get the host name */
-		temp_ptr=strtok(input_buffer,delimiter);
-		if(temp_ptr==NULL){
-			printf("Error: Host name is NULL!\n");
+		ptr1=strtok(input_buffer,delimiter);
+		if(ptr1==NULL)
 			continue;
-		        }
-		strncpy(host_name,temp_ptr,sizeof(host_name)-1);
-		host_name[sizeof(host_name)-1]='\x0';
 
-		/* get the service description */
-		temp_ptr=strtok(NULL,delimiter);
-		if(temp_ptr==NULL){
-			printf("Error: Service description is NULL!\n");
+		/* get the service description or return code */
+		ptr2=strtok(NULL,delimiter);
+		if(ptr2==NULL)
 			continue;
-		        }
-		strncpy(svc_description,temp_ptr,sizeof(svc_description)-1);
-		svc_description[sizeof(svc_description)-1]='\x0';
 
-		/* get the return code */
-		temp_ptr=strtok(NULL,delimiter);
-		if(temp_ptr==NULL){
-			printf("Error: Return code is NULL!\n");
+		/* get the return code or plugin output */
+		ptr3=strtok(NULL,delimiter);
+		if(ptr3==NULL)
 			continue;
-		        }
-		return_code=atoi(temp_ptr);
 
-		/* get the plugin output */
-		temp_ptr=strtok(NULL,"\n");
-		if(temp_ptr==NULL){
-			printf("Error: Plugin output is NULL!\n");
-			continue;
-		        }
-		strncpy(plugin_output,temp_ptr,sizeof(plugin_output)-1);
-		plugin_output[sizeof(plugin_output)-1]='\x0';
+		/* get the plugin output - if NULL, this is a host check result */
+		ptr4=strtok(NULL,"\n");
 		
+		strncpy(host_name,ptr1,sizeof(host_name)-1);
+		host_name[sizeof(host_name)-1]='\x0';
+		if(ptr4==NULL){
+			strcpy(svc_description,"");
+			return_code=atoi(ptr2);
+			if(plugin_output[strlen(plugin_output)-1]=='\n')
+				plugin_output[strlen(plugin_output)-1]='\x0';
+			strncpy(plugin_output,ptr3,sizeof(plugin_output)-1);
+		        }
+		else{
+			strncpy(svc_description,ptr2,sizeof(svc_description)-1);
+			return_code=atoi(ptr3);
+			strncpy(plugin_output,ptr4,sizeof(plugin_output)-1);
+		        }
+		svc_description[sizeof(svc_description)-1]='\x0';
+		plugin_output[sizeof(plugin_output)-1]='\x0';
+
+		/* increment count of packets we're sending */
 		total_packets++;
 
 		/* clear the packet buffer */
@@ -246,7 +251,7 @@ int main(int argc, char **argv){
 		randomize_buffer((char *)&send_packet,sizeof(send_packet));
 
 		/* copy the data we want to send into the packet */
-		send_packet.packet_version=(int16_t)htons(NSCA_PACKET_VERSION_2);
+		send_packet.packet_version=(int16_t)htons(NSCA_PACKET_VERSION_3);
 		send_packet.return_code=(int16_t)htons(return_code);
 		strcpy(&send_packet.host_name[0],host_name);
 		strcpy(&send_packet.svc_description[0],svc_description);

@@ -2,7 +2,7 @@
  *
  * COMMON.H - NSCA Common Include File
  * Copyright (c) 1999-2002 Ethan Galstad (nagios@nagios.org)
- * Last Modified: 06-01-2002
+ * Last Modified: 07-15-2002
  *
  * License:
  *
@@ -25,7 +25,7 @@
 
 
 #define PROGRAM_VERSION "2.2"
-#define MODIFICATION_DATE "07-08-2002"
+#define MODIFICATION_DATE "07-15-2002"
 
 
 #define OK		0
@@ -96,8 +96,9 @@
 
 /*************** PACKET STRUCTURE DEFINITIONS **********/
 
-#define NSCA_PACKET_VERSION_2	2		/* packet version identifier */
-#define NSCA_PACKET_VERSION_1	1		/* older packet version identifier */
+#define NSCA_PACKET_VERSION_3   3		/* packet version identifier */
+#define NSCA_PACKET_VERSION_2	2		/* older packet version identifiers */
+#define NSCA_PACKET_VERSION_1	1
 
 /* data packet containing service check results */
 typedef struct data_packet_struct{

@@ -16,8 +16,8 @@ Contents
 There are two pieces to this addon:
 
   1) nsca       - This program runs as a daemon on the central server
-                  that runs Nagios.  It listens for service check
-	          results from remote machines (sent using the
+                  that runs Nagios.  It listens for host and service
+	          check results from remote machines (sent using the
 		  send_nsca program described below).  Upon receiving
                   data from a remote client, the daemon will make a
                   *very* basic attempt at validating the data it has
@@ -27,14 +27,14 @@ There are two pieces to this addon:
                   originally encrypted by the send_ncsa program using
                   the same password), the daemon will make entries in
                   the Nagios external command file telling Nagios
-                  to process the service check result.  
+                  to process the host or service check result.  
 
 		  Notes: The nsca daemon must have sufficient rights
                   to open the Nagios command file for writing.  Also,
 		  Nagios will only process passive service check
                   results that it finds in the external command file
                   if the service has been defined in the host config
-                  file (hosts.cfg) and it is being monitored.
+                  file (i.e. hosts.cfg) and it is being monitored.
 
 
   2) send_nsca  - This is the client program that is used to send
@@ -53,6 +53,11 @@ There are two pieces to this addon:
 			<svc_description>=description of the service
 			<return_code>=numeric return code
 			<plugin_output>=output from service check
+
+		  Host check information is submitted in a similiar
+ 		  fashion - just leave out the service description:
+
+			<host_name>[tab]<return_code>[tab]<plugin_output>[newline]
 
 
 Compiling
@@ -142,7 +147,9 @@ of TCP wrappers, you need to do the following things:
    ***** XINETD *****
    If your system uses xinetd instead of inetd, you'll probably
    want to create a file called 'nsca' in your /etc/xinetd.d
-   directory that contains the following entries:
+   directory that contains the following entries (a sample config
+   file called nsca.xinetd should be created in the root folder of
+   the distribution after you run the configure script):
 
 
 	# default: on
@@ -153,8 +160,9 @@ of TCP wrappers, you need to do the following things:
 	        socket_type     = stream        
         	wait            = no
 	        user            = <user>
+		group		= <group>
         	server          = <nscabin>
-	        server_args     = -i <nscacfg>
+	        server_args     = -i -c <nscacfg>
         	log_on_failure  += USERID
 	        disable         = no
 		only_from       = <ipaddress1> <ipaddress2> ...
@@ -162,6 +170,7 @@ of TCP wrappers, you need to do the following things:
 
 
    - Replace <user> with the name of the user that the nsca server should run as.
+   - Replace <group> with the name of the group that the nsca server should run as.
    - Replace <nscabin> with the path to the nsca binary on your system.
    - Replace <nscacfg> with the path to the nsca config file on your system.
    - Replace the <ipaddress> fields with the IP addresses of hosts which

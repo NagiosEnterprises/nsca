@@ -4,7 +4,7 @@
  * Copyright (c) 2000-2002 Ethan Galstad (nagios@nagios.org)
  * License: GPL
  *
- * Last Modified: 07-08-2002
+ * Last Modified: 07-15-2002
  *
  * Command line: NSCA -c <config_file>
  *
@@ -43,7 +43,7 @@ static int open_command_file(void);
 static void close_command_file(void);
 static void install_child_handler(void);
 static int drop_privileges(char *,char *);
-static int write_service_check_result(char *,char *,int,char *,time_t);
+static int write_check_result(char *,char *,int,char *,time_t);
 static void do_exit(void);
 
 static enum { OPTIONS_ERROR, SINGLE_PROCESS_DAEMON, MULTI_PROCESS_DAEMON, INETD } mode=SINGLE_PROCESS_DAEMON;
@@ -886,7 +886,7 @@ static void handle_connection_read(int sock, void *data){
         decrypt_buffer((char *)&receive_packet,sizeof(receive_packet),password,decryption_method,CI);
 
         /* make sure this is the right type of packet */
-        if(ntohs(receive_packet.packet_version)!=NSCA_PACKET_VERSION_2){
+        if(ntohs(receive_packet.packet_version)!=NSCA_PACKET_VERSION_3){
                 syslog(LOG_ERR,"Received invalid packet type/version from client - possibly due to client using wrong password or crypto algorithm?");
                 return;
                 }
@@ -933,8 +933,12 @@ static void handle_connection_read(int sock, void *data){
         plugin_output[sizeof(plugin_output)-1]='\0';
 
         /* log info to syslog facility */
-        if(debug==TRUE)
-                syslog(LOG_NOTICE,"Host Name: '%s', Service Description: '%s', Return Code: '%d', Output: '%s'",host_name,svc_description,return_code,plugin_output);
+        if(debug==TRUE){
+		if(!strcmp(svc_description,""))
+			syslog(LOG_NOTICE,"HOST CHECK -> Host Name: '%s', Return Code: '%d', Output: '%s'",host_name,return_code,plugin_output);
+		else
+			syslog(LOG_NOTICE,"SERVICE CHECK -> Host Name: '%s', Service Description: '%s', Return Code: '%d', Output: '%s'",host_name,svc_description,return_code,plugin_output);
+	        }
 
         /* write the check result to the external command file.
          * Note: it's OK to hang at this point if the write doesn't succeed, as there's
@@ -942,7 +946,7 @@ static void handle_connection_read(int sock, void *data){
          * use poll() - which fails on a pipe with any data, so it would cause us to
          * only ever write one command at a time into the pipe.
          */
-        write_service_check_result(host_name,svc_description,return_code,plugin_output,time(NULL));
+        write_check_result(host_name,svc_description,return_code,plugin_output,time(NULL));
 
 	return;
         }
@@ -966,15 +970,18 @@ static int is_an_allowed_host(char *connecting_host){
         }
 
 
-/* writes service check results to the Nagios command file */
-static int write_service_check_result(char *host_name, char *svc_description, int return_code, char *plugin_output, time_t check_time){
+/* writes service/host check results to the Nagios command file */
+static int write_check_result(char *host_name, char *svc_description, int return_code, char *plugin_output, time_t check_time){
 
         if(aggregate_writes==FALSE){
                 if(open_command_file()==ERROR)
                         return ERROR;
                 }
 
-        fprintf(command_file_fp,"[%lu] PROCESS_SERVICE_CHECK_RESULT;%s;%s;%d;%s\n",(unsigned long)check_time,host_name,svc_description,return_code,plugin_output);
+	if(!strcmp(svc_description,""))
+		fprintf(command_file_fp,"[%lu] PROCESS_HOST_CHECK_RESULT;%s;;%d;%s\n",(unsigned long)check_time,host_name,return_code,plugin_output);
+	else
+		fprintf(command_file_fp,"[%lu] PROCESS_SERVICE_CHECK_RESULT;%s;%s;%d;%s\n",(unsigned long)check_time,host_name,svc_description,return_code,plugin_output);
 
         if(aggregate_writes==FALSE)
                 close_command_file();
@@ -1077,7 +1084,7 @@ int process_arguments(int argc, char **argv){
 
 			if(x<argc){
 				/* grab the config file */
-				strncpy(config_file,argv[x-1],sizeof(config_file)-1);
+				strncpy(config_file,argv[x],sizeof(config_file)-1);
 				config_file[sizeof(config_file)-1]='\0';
 				x++;
 			        }
