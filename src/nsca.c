@@ -4,7 +4,7 @@
  * Copyright (c) 2000-2003 Ethan Galstad (nagios@nagios.org)
  * License: GPL
  *
- * Last Modified: 01-26-2003
+ * Last Modified: 05-20-2003
  *
  * Command line: NSCA -c <config_file> [mode]
  *
@@ -864,7 +864,7 @@ static void handle_connection(int sock, void *data){
 /* handle reading from a client connection */
 static void handle_connection_read(int sock, void *data){
         data_packet receive_packet;
-        u_int32_t long packet_crc32;
+        u_int32_t packet_crc32;
         u_int32_t calculated_crc32;
         struct crypt_instance *CI;
         time_t packet_time;
