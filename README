@@ -5,9 +5,9 @@ NSCA README
 
 Purpose
 -------
-The purpose of this addon is to allow you submit service check
-results from remote hosts to the central monitoring host that
-run Nagios.
+The purpose of this addon is to allow you to send service check
+results to a central monitoring server runnin Nagios in a secure
+manner.
 
 
 Contents
@@ -103,36 +103,70 @@ kind of protection the encryption provides you.
 
 
 
-Running Under INETD
--------------------
+Running Under INETD or XINETD
+-----------------------------
 
-If you plan on running nsca under inetd and making use of TCP
-wrappers, you need to do two things:
+If you plan on running nsca under inetd or xinetd and making use
+of TCP wrappers, you need to do the following things:
 
 1) Add a line to your /etc/services file as follows (modify the port
    number as you see fit)
 
 	nsca            5667/tcp	# NSCA
 
-2) Add an entry to /etc/inetd.conf as follows
+2) If your system uses the inetd superserver, add an entry to 
+   /etc/inetd.conf as follows:
 
-	nsca    stream  tcp     nowait  <user> /usr/sbin/tcpd <nscabin> -i <nscacfg>
 
-   - Replace <user> with the name of the user that nrpe should run as
+	nsca    stream  tcp     nowait  <user> /usr/sbin/tcpd <nscabin> -i -c <nscacfg>
+
+
+   - Replace <user> with the name of the user that nsca server should run as.
    - Replace <nscabin> with the path to the nsca binary on your system.
    - Replace <nscacfg> with the path to the nsca config file on your system.
 
-3) Restart inetd will the following command
+3) If your system uses xinetd instead of inetd, you'll probably
+   want to create a file called 'nsca' in your /etc/xinetd.d
+   directory that contains the following entries:
+
+
+	# default: on
+	# description: NSCA
+	service nsca
+	{
+        	flags           = REUSE
+	        socket_type     = stream        
+        	wait            = no
+	        user            = <user>
+        	server          = <nscabin>
+	        server_args     = -i <nscacfg>
+        	log_on_failure  += USERID
+	        disable         = no
+		only_from       = <ipaddress1> <ipaddress2> ...
+	}
+
+
+   - Replace <user> with the name of the user that the nsca server should run as.
+   - Replace <nscabin> with the path to the nsca binary on your system.
+   - Replace <nscacfg> with the path to the nsca config file on your system.
+   - Replace the <ipaddress> fields with the IP addresses of hosts which
+     are allowed to connect to the NRPE daemon.  This only works if xinetd was
+     compiled with support for wrappers.
+
+4) Restart inetd or xinetd will the following command (pick the
+   one that is appropriate for your system:
 
 	/etc/rc.d/init.d/inet restart
 
-4) Add entries to your /etc/hosts.allow and /etc/hosts.deny
+	/etc/rc.d/init.d/xinetd restart
+
+5) Add entries to your /etc/hosts.allow and /etc/hosts.deny
    file to enable TCP wrapper protection for the nsca service.
    This is optional, although highly recommended.
 
 
-Note: If you run nrpe under inetd, the server_port and 
-      allowed_hosts variables in the nsca.cfg configuration 
+Note: If you run nrpe under inetd or xinetd, the server_port
+      and allowed_hosts variables in the nsca configuration
       file are ignored.
 
 

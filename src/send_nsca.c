@@ -1,11 +1,10 @@
 /**********************************************************************************
  *
  * SEND_NSCA.C - NSCA Client
- * Version: 1.2
  * License: GPL
- * Copyright (c) 2000-2001 Ethan Galstad (nagios@nagios.org)
+ * Copyright (c) 2000-2002 Ethan Galstad (nagios@nagios.org)
  *
- * Last Modified: 06-23-2001
+ * Last Modified: 02-21-2002
  *
  * Command line: SEND_NSCA <host_address> [-p port] [-to to_sec] [-c config_file]
  *
@@ -14,13 +13,12 @@
  *
  *********************************************************************************/
 
+/*#define DEBUG*/
+
 #include "../common/common.h"
 #include "../common/config.h"
 #include "netutils.h"
 #include "utils.h"
-
-#define PROGRAM_VERSION "1.2"
-#define MODIFICATION_DATE "06-23-2001"
 
 time_t start_time,end_time;
 
@@ -30,6 +28,8 @@ char password[MAX_INPUT_BUFFER]="";
 char config_file[MAX_INPUT_BUFFER]="send_nsca.cfg";
 char delimiter[2]="\t";
 
+char received_iv[TRANSMITTED_IV_SIZE];
+
 int socket_timeout=DEFAULT_SOCKET_TIMEOUT;
 
 int warning_time=0;
@@ -37,11 +37,17 @@ int check_warning_time=FALSE;
 int critical_time=0;
 int check_critical_time=FALSE;
 int encryption_method=ENCRYPT_XOR;
+time_t packet_timestamp;
+
+int show_help=FALSE;
+int show_license=FALSE;
 
 
 int process_arguments(int,char **);
 int read_config_file(char *);
+int read_init_packet(int);
 void alarm_handler(int);
+void clear_password(void);
 
 
 
@@ -50,25 +56,29 @@ int main(int argc, char **argv){
 	int sd;
 	int rc;
 	int result;
-	packet send_packet;
-	packet receive_packet;
+	data_packet send_packet;
+	int bytes_to_send;
 	char input_buffer[MAX_INPUT_BUFFER];
 	char *temp_ptr;
 	char host_name[MAX_HOSTNAME_LENGTH];
 	char svc_description[MAX_DESCRIPTION_LENGTH];
 	char plugin_output[MAX_PLUGINOUTPUT_LENGTH];
-	int return_code;
 	int total_packets=0;
-	unsigned long calculated_crc32=0L;
+	int16_t return_code;
+	u_int32_t calculated_crc32;
+        struct crypt_instance *CI;
 
+
+	/* process command-line arguments */
 	result=process_arguments(argc,argv);
 
-	if(result!=OK){
+	if(result!=OK || show_help==TRUE || show_license==TRUE){
 
-		printf("Incorrect command line arguments supplied\n");
+		if(result!=OK)
+			printf("Incorrect command line arguments supplied\n");
 		printf("\n");
 		printf("NSCA Client %s\n",PROGRAM_VERSION);
-		printf("Copyright (c) 2000-2001 Ethan Galstad (nagios@nagios.org)\n");
+		printf("Copyright (c) 2000-2002 Ethan Galstad (nagios@nagios.org)\n");
 		printf("Last Modified: %s\n",MODIFICATION_DATE);
 		printf("License: GPL\n");
 		printf("Encryption Routines: ");
@@ -79,6 +89,9 @@ int main(int argc, char **argv){
 #endif		
 		printf("\n");
 		printf("\n");
+	        }
+
+	if(result!=OK || show_help==TRUE){
 		printf("Usage: %s <host_address> [-p port] [-to to_sec] [-d delim] [-c config_file]\n",argv[0]);
 		printf("\n");
 		printf("Options:\n");
@@ -101,6 +114,13 @@ int main(int argc, char **argv){
 		return STATE_UNKNOWN;
 	        }
 
+	if(show_license==TRUE){
+
+		display_license();
+
+		return STATE_UNKNOWN;
+	        }
+
 	/* read the config file */
 	result=read_config_file(config_file);	
 
@@ -113,12 +133,6 @@ int main(int argc, char **argv){
 	/* generate the CRC 32 table */
 	generate_crc32_table();
 
-	/* initialize encryption/decryption routines */
-	if(encrypt_init(password,encryption_method)!=OK){
-		printf("Error: Failed to initialize encryption libraries for method %d\n",encryption_method);
-		return STATE_CRITICAL;
-	        }
-
 	/* initialize alarm signal handling */
 	signal(SIGALRM,alarm_handler);
 
@@ -130,116 +144,203 @@ int main(int argc, char **argv){
 	/* try to connect to the host at the given port number */
 	result=my_tcp_connect(server_name,server_port,&sd);
 
-	/* we connected! */
-	if(result==STATE_OK){
+	/* we couldn't connect */
+	if(result!=STATE_OK){
 
-		/* read all data from STDIN until there isn't anymore */
-		while(fgets(input_buffer,sizeof(input_buffer)-1,stdin)){
+		printf("Error: Could not connect to host %s on port %d\n",server_name,server_port);
 
-			if(feof(stdin))
-				break;
+		return STATE_CRITICAL;
+	        }
 
-			strip(input_buffer);
+#ifdef DEBUG
+	printf("Connected okay...\n");
+#endif
 
-			if(!strcmp(input_buffer,""))
-				continue;
+	/* read the initialization packet containing the IV and timestamp */
+	result=read_init_packet(sd);
+	if(result!=OK){
 
-			/* get the host name */
-			temp_ptr=strtok(input_buffer,delimiter);
-			if(temp_ptr==NULL){
-				printf("Error: Host name is NULL!\n");
-				continue;
-			        }
-			strncpy(host_name,temp_ptr,sizeof(host_name)-1);
-			host_name[sizeof(host_name)-1]='\x0';
-
-			/* get the service description */
-			temp_ptr=strtok(NULL,delimiter);
-			if(temp_ptr==NULL){
-				printf("Error: Service description is NULL!\n");
-				continue;
-			        }
-			strncpy(svc_description,temp_ptr,sizeof(svc_description)-1);
-			svc_description[sizeof(svc_description)-1]='\x0';
-
-			/* get the return code */
-			temp_ptr=strtok(NULL,delimiter);
-			if(temp_ptr==NULL){
-				printf("Error: Return code is NULL!\n");
-				continue;
-			        }
-			return_code=atoi(temp_ptr);
-
-			/* get the plugin output */
-			temp_ptr=strtok(NULL,"\n");
-			if(temp_ptr==NULL){
-				printf("Error: Plugin output is NULL!\n");
-				continue;
-			        }
-			strncpy(plugin_output,temp_ptr,sizeof(plugin_output)-1);
-			plugin_output[sizeof(plugin_output)-1]='\x0';
-		
-
-			total_packets++;
-
-			/* clear the packet buffer */
-			bzero(&send_packet,sizeof(send_packet));
-
-			/* fill the packet with semi-random data */
-			randomize_buffer((char *)&send_packet,sizeof(send_packet));
-
-			/* copy the data we want to send into the packet */
-			send_packet.packet_version=htonl(NSCA_PACKET_VERSION_1);
-			strcpy(&send_packet.host_name[0],host_name);
-			strcpy(&send_packet.svc_description[0],svc_description);
-			send_packet.return_code=htonl(return_code);
-			strcpy(&send_packet.plugin_output[0],plugin_output);
-
-			/* calculate the crc 32 value of the packet */
-			send_packet.crc32_value=0L;
-			calculated_crc32=calculate_crc32((char *)&send_packet,sizeof(send_packet));
-			send_packet.crc32_value=htonl(calculated_crc32);
-
-			/* encrypt the packet */
-			encrypt_buffer((char *)&send_packet,sizeof(send_packet),password,encryption_method);
-
-			/* send the packet */
-			rc=send(sd,(void *)&send_packet,sizeof(send_packet),0);
-
-			/* there was an error sending the packet */
-			if(rc==-1){
-				printf("Error: Could not send data to host\n");
-				close(sd);
-				return STATE_UNKNOWN;
-		                }
-
-			/* for some reason we didn't send all the bytes we were supposed to */
-			else if(rc<sizeof(send_packet)){
-				printf("Warning: Sent only %d of %d bytes to host\n",rc,sizeof(send_packet));
-				close(sd);
-				return STATE_UNKNOWN;
-			        }
-		        }
-
-		result=STATE_OK;
+		printf("Error: Could not read init packet from server\n");
 
 		/* close the connection */
 		close(sd);
 
-		printf("%d data packet(s) sent to host successfully.\n",total_packets);
+		return STATE_CRITICAL;
 	        }
 
-	/* we couldn't connect */
-	else
-		printf("Error: Could not connect to host %s on port %d\n",server_name,server_port);
+#ifdef DEBUG
+	printf("Got init packet from server\n");
+#endif
+
+	/* initialize encryption/decryption routines with the IV we received from the server */
+        if(encrypt_init(password,encryption_method,received_iv,&CI)!=OK){
+
+		printf("Error: Failed to initialize encryption libraries for method %d\n",encryption_method);
+
+		return STATE_CRITICAL;
+	        }
+
+	/* clear password from memory if we can */
+	if(encryption_method!=ENCRYPT_XOR)
+		clear_buffer(password,sizeof(password));
+
+#ifdef DEBUG
+	printf("Initialized encryption routines\n");
+#endif
+
+
+	/**** WE'RE CONNECTED AND READY TO SEND ****/
+
+	/* read all data from STDIN until there isn't anymore */
+	while(fgets(input_buffer,sizeof(input_buffer)-1,stdin)){
+
+		if(feof(stdin))
+			break;
+
+		strip(input_buffer);
+
+		if(!strcmp(input_buffer,""))
+			continue;
+
+		/* get the host name */
+		temp_ptr=strtok(input_buffer,delimiter);
+		if(temp_ptr==NULL){
+			printf("Error: Host name is NULL!\n");
+			continue;
+		        }
+		strncpy(host_name,temp_ptr,sizeof(host_name)-1);
+		host_name[sizeof(host_name)-1]='\x0';
+
+		/* get the service description */
+		temp_ptr=strtok(NULL,delimiter);
+		if(temp_ptr==NULL){
+			printf("Error: Service description is NULL!\n");
+			continue;
+		        }
+		strncpy(svc_description,temp_ptr,sizeof(svc_description)-1);
+		svc_description[sizeof(svc_description)-1]='\x0';
+
+		/* get the return code */
+		temp_ptr=strtok(NULL,delimiter);
+		if(temp_ptr==NULL){
+			printf("Error: Return code is NULL!\n");
+			continue;
+		        }
+		return_code=atoi(temp_ptr);
+
+		/* get the plugin output */
+		temp_ptr=strtok(NULL,"\n");
+		if(temp_ptr==NULL){
+			printf("Error: Plugin output is NULL!\n");
+			continue;
+		        }
+		strncpy(plugin_output,temp_ptr,sizeof(plugin_output)-1);
+		plugin_output[sizeof(plugin_output)-1]='\x0';
+		
+		total_packets++;
+
+		/* clear the packet buffer */
+		bzero(&send_packet,sizeof(send_packet));
+
+		/* fill the packet with semi-random data */
+		randomize_buffer((char *)&send_packet,sizeof(send_packet));
+
+		/* copy the data we want to send into the packet */
+		send_packet.packet_version=(int16_t)htons(NSCA_PACKET_VERSION_2);
+		send_packet.return_code=(int16_t)htons(return_code);
+		strcpy(&send_packet.host_name[0],host_name);
+		strcpy(&send_packet.svc_description[0],svc_description);
+		strcpy(&send_packet.plugin_output[0],plugin_output);
+
+		/* use timestamp provided by the server */
+		send_packet.timestamp=(u_int32_t)htonl(packet_timestamp);
+
+		/* calculate the crc 32 value of the packet */
+		send_packet.crc32_value=(u_int32_t)0L;
+		calculated_crc32=calculate_crc32((char *)&send_packet,sizeof(send_packet));
+		send_packet.crc32_value=(u_int32_t)htonl(calculated_crc32);
+
+		/* encrypt the packet */
+		encrypt_buffer((char *)&send_packet,sizeof(send_packet),password,encryption_method,CI);
+
+		/* send the packet */
+		bytes_to_send=sizeof(send_packet);
+		rc=sendall(sd,(char *)&send_packet,&bytes_to_send);
+
+		/* there was an error sending the packet */
+		if(rc==-1){
+			printf("Error: Could not send data to host\n");
+			close(sd);
+			return STATE_UNKNOWN;
+	                }
+
+		/* for some reason we didn't send all the bytes we were supposed to */
+		else if(bytes_to_send<sizeof(send_packet)){
+			printf("Warning: Sent only %d of %d bytes to host\n",rc,sizeof(send_packet));
+			close(sd);
+			return STATE_UNKNOWN;
+		        }
+	        }
+
+#ifdef DEBUG
+	printf("Done sending data\n");
+#endif
+
+	/* clear password from memory if we haven't already */
+	if(encryption_method==ENCRYPT_XOR)
+		clear_buffer(password,sizeof(password));
+
+	/* close the connection */
+	close(sd);
+
+	printf("%d data packet(s) sent to host successfully.\n",total_packets);
 
 	/* reset the alarm */
 	alarm(0);
 
 	/* encryption/decryption routine cleanup */
-	encrypt_cleanup(encryption_method);
+	encrypt_cleanup(encryption_method,CI);
 
-	return result;
+#ifdef DEBUG
+	printf("Cleaned up encryption routines\n");
+#endif
+
+	return STATE_OK;
+        }
+
+
+
+/* reads initialization packet (containing IV and timestamp) from server */
+int read_init_packet(int sock){
+        int rc;
+        init_packet receive_packet;
+        int bytes_to_recv;
+
+        /* clear the IV and timestamp */
+        bzero(&received_iv,TRANSMITTED_IV_SIZE);
+        packet_timestamp=(time_t)0;
+
+        /* get the init packet from the server */
+        bytes_to_recv=sizeof(receive_packet);
+        rc=recvall(sock,(char *)&receive_packet,&bytes_to_recv,socket_timeout);
+
+        /* recv() error or server disconnect */
+        if(rc<=0){
+                printf("Error: Server closed connection before init packet was received\n");
+                return ERROR;
+                }
+
+        /* we couldn't read the correct amount of data, so bail out */
+        else if(bytes_to_recv!=sizeof(receive_packet)){
+                printf("Error: Init packet from server was too short (%d bytes received, %d expected)\n",bytes_to_recv,sizeof(receive_packet));
+                return ERROR;
+                }
+
+        /* transfer the IV and timestamp */
+        memcpy(&received_iv,&receive_packet.iv[0],TRANSMITTED_IV_SIZE);
+        packet_timestamp=(time_t)ntohl(receive_packet.timestamp);
+
+        return OK;
         }
 
 
@@ -249,18 +350,30 @@ int process_arguments(int argc, char **argv){
 	int x;
 
 	/* no options were supplied */
-	if(argc<2)
-		return ERROR;
+	if(argc<2){
+		show_help=TRUE;
+		return OK;
+	        }
 
-	/* first option is always the server name/address */
-	strncpy(server_name,argv[1],sizeof(server_name)-1);
-	server_name[sizeof(server_name)-1]='\x0';
+	/* process arguments (host name is usually 1st argument) */
+	for(x=2;x<=argc;x++){
 
-	/* process all remaining arguments */
-	for(x=3;x<=argc;x++){
+		/* show usage */
+		if(!strcmp(argv[x-1],"-h") || !strcmp(argv[x-1],"--help"))
+			show_help=TRUE;
+
+		/* show license */
+		else if(!strcmp(argv[x-1],"-l") || !strcmp(argv[x-1],"--license"))
+			show_license=TRUE;
+
+		/* server name/address */
+		else if(x==2){
+			strncpy(server_name,argv[1],sizeof(server_name)-1);
+			server_name[sizeof(server_name)-1]='\x0';
+		        }
 
 		/* port to connect to */
-		if(!strcmp(argv[x-1],"-p")){
+		else if(!strcmp(argv[x-1],"-p")){
 			if(x<argc){
 				server_port=atoi(argv[x]);
 				x++;

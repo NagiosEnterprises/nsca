@@ -1,10 +1,14 @@
 /*********************************************************************************
  *
  * UTILS.H - Header file for NSCA utility functions
- * License: GPL
- * Copyright (c) 2000-2001 Ethan Galstad (nagios@nagios.org)
  *
- * Last Modified: 07-23-2001
+ * License: GPL
+ * Copyright (c) 2000-2002 Ethan Galstad (nagios@nagios.org)
+ *
+ * Last Modified: 02-21-2002
+ *
+ * Description:
+ *
  *
  * License Information:
  *
@@ -29,18 +33,38 @@
 
 #include "../common/config.h"
 
+struct crypt_instance {
+	char transmitted_iv[TRANSMITTED_IV_SIZE];
+#ifdef HAVE_LIBMCRYPT
+	MCRYPT td;
+	char *key;
+	char *IV;
+	char block_buffer;
+	int blocksize;
+	int keysize;
+	char *mcrypt_algorithm;
+	char *mcrypt_mode;
+#endif
+        };
+
 void generate_crc32_table(void);
 unsigned long calculate_crc32(char *, int);
 
-int encrypt_init(char *,int);
-void encrypt_cleanup(int);
+int encrypt_init(char *,int,char *,struct crypt_instance **);
+void encrypt_cleanup(int,struct crypt_instance *);
 
-void encrypt_buffer(char *,int,char *,int);
-void decrypt_buffer(char *,int,char *,int);
+static void generate_transmitted_iv(char *transmitted_iv);
+
+void encrypt_buffer(char *,int,char *,int,struct crypt_instance *);
+void decrypt_buffer(char *,int,char *,int,struct crypt_instance *);
 
 void randomize_buffer(char *,int);
 
 void strip(char *);
+
+void clear_buffer(char *,int);
+
+void display_license(void);
 
 #endif
 

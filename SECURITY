@@ -128,6 +128,30 @@ What This Means
 
 
 
+Preventing "Replay" Attacks
+---------------------------
+
+The methods described above help ensure that the data the
+NSCA daemon receives is "valid" data - i.e., it was
+encrypted with the appropriate passphrase and crypto 
+algorithm.  One problem that remains is the fact that
+someone could capture the data packets being sent from the
+client to the daemon and send them back to the daemon at
+a later time.  This is referred to as a "replay attack".
+To help prevent this, the NSCA daemon generates what is
+essentially a one-time, randomly generated IV that the
+client must use to encrypt data for each particular
+"session".  The IV does not need to be secret, just unique.
+The IV is used in conjunction with the password during
+encryption and decryption.  Encrypting a packet with the
+same password but different IVs results in a different
+result.  Since the daemon knows what IV it generated and
+sent to the client, it can verify that the data the client
+sends to it has been properly encrypted.  This provides
+a reasonable mechanism of preventing replay attacks.
+
+
+
 Caveats
 -------
 

@@ -1,8 +1,8 @@
 /************************************************************************
  *
- * NSCA Common Header File
- * Copyright (c) 2000-2001 Ethan Galstad (nagios@nagios.org)
- * Last Modified: 06-23-2001
+ * NSCA Common Config Header File
+ * Copyright (c) 2000-2002 Ethan Galstad (nagios@nagios.org)
+ * Last Modified: 02-21-2002
  *
  * License:
  *
@@ -67,6 +67,11 @@
 #include <syslog.h>
 #endif
 
+#undef HAVE_SYS_INT_TYPES_H
+#ifdef HAVE_SYS_INT_TYPES_H
+#include <sys/int_types.h>
+#endif
+
 #undef HAVE_SYS_STAT_H
 #ifdef HAVE_SYS_STAT_H
 #include <sys/stat.h>
@@ -75,6 +80,16 @@
 #undef HAVE_FCNTL_H
 #ifdef HAVE_FCNTL_H
 #include <fcntl.h>
+#endif
+
+#undef HAVE_STDINT_H
+#ifdef HAVE_STDINT_H
+#include <stdint.h>
+#endif
+
+#undef HAVE_SYS_POLL_H
+#ifdef HAVE_SYS_POLL_H
+#include <sys/poll.h>
 #endif
 
 #undef HAVE_SYS_TYPES_H

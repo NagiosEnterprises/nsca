@@ -1,7 +1,7 @@
 ###############################
 # Makefile for NSCA
 #
-# Last Modified: 08-26-2000
+# Last Modified: 12-23-2001
 ###############################
 
 
@@ -25,11 +25,10 @@ send_nsca: send_nsca.c netutils.c netutils.h utils.c utils.h $(SRC_COMMON)/commo
 	$(CC) $(CFLAGS) $(LDFLAGS) $(SOCKETLIBS) send_nsca.c netutils.c utils.c -o $@
 
 clean:
-	rm -f core \
-	nsca send_nsca
-
-distclean: clean
+	rm -f core nsca send_nsca
 	rm -f *~ */*~
 	rm -f Makefile
 
-devclean: distclean
+distclean: clean
+
+devclean: clean

@@ -16,7 +16,7 @@ dnl Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_TIME
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS(ctype.h errno.h fcntl.h netdb.h signal.h strings.h string.h syslog.h unistd.h arpa/inet.h netinet/in.h sys/types.h sys/time.h sys/resource.h sys/wait.h sys/socket.h sys/stat.h)
+AC_CHECK_HEADERS(ctype.h errno.h fcntl.h netdb.h signal.h stdint.h strings.h string.h syslog.h unistd.h arpa/inet.h netinet/in.h sys/int_types.h sys/poll.h sys/types.h sys/time.h sys/resource.h sys/wait.h sys/socket.h sys/stat.h)
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
@@ -51,17 +51,18 @@ AC_ARG_WITH(mcrypt-inc,--with-mcrypt-inc=DIR sets location of the mcrypt client 
 	CFLAGS="${CFLAGS} -I${withval}"
 	])
 
-dnl Check for ltdl library
-AC_CHECK_LIB(ltdl,main)
+dnl Old checks for libmcrypt, no longer needed - 01/17/02 EG
+dnl AC_CHECK_LIB(ltdl,main)
+dnl AC_CHECK_LIB(mcrypt,mcrypt,MCRYPTLIBFOUND=yep)
 
 dnl Check for mcrypt library
-MCRYPTLIBFOUND=nope
-AC_CHECK_LIB(mcrypt,mcrypt,MCRYPTLIBFOUND=yep)
+MCRYPTLIBFOUND=yep
+AM_PATH_LIBMCRYPT(2.4.11,,MCRYPTLIBFOUND=nope)
 
 dnl added for automatic use of mcrypt stark@suse.de
 if test $MCRYPTLIBFOUND = yep; then
-	CFLAGS="${CFLAGS} -DHAVE_LIBMCRYPT"
-	LDFLAGS="${LDFLAGS} -lmcrypt"
+	CFLAGS="${CFLAGS} -DHAVE_LIBMCRYPT ${LIBMCRYPT_CFLAGS}"
+	LDFLAGS="${LDFLAGS} ${LIBMCRYPT_LIBS}"
 fi
 
 dnl Did we find the mcrypt library?
@@ -103,12 +104,6 @@ AC_OUTPUT(Makefile src/Makefile)
 
 echo ""
 echo ""
-echo "Type 'make all' to compile the NSCA client and daemon."
+echo "Type 'make all' to compile the NSCA daemon and client."
 echo ""
-
-
-
-
-
-
 

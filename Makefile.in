@@ -1,7 +1,7 @@
 ###############################
 # Makefile for NSCA
 #
-# Last Modified: 12-21-2000
+# Last Modified: 02-21-2002
 ###############################
 
 
@@ -18,16 +18,13 @@ nsca:
 send_nsca:
 	cd $(SRC_BASE); $(MAKE) $@ ; cd ..
 
-
 clean:
 	cd $(SRC_BASE); $(MAKE) $@ ; cd ..
 	rm -f core
+	rm -f *~ */*~
+	rm -f conf.libmcrypttest config.log config.status config.cache Makefile $(SRC_COMMON)config.h
 
 distclean: clean
-	cd $(SRC_BASE); $(MAKE) $@ ; cd ..
-	rm -f *~ */*~
-	rm -f config.log config.status config.cache Makefile \
-	$(SRC_COMMON)/config.h \
 
-devclean: distclean
+devclean: clean
 

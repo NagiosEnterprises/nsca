@@ -1,8 +1,8 @@
 /************************************************************************
  *
  * COMMON.H - NSCA Common Include File
- * Copyright (c) 1999-2001 Ethan Galstad (nagios@nagios.org)
- * Last Modified: 06-23-2001
+ * Copyright (c) 1999-2002 Ethan Galstad (nagios@nagios.org)
+ * Last Modified: 02-21-2002
  *
  * License:
  *
@@ -22,6 +22,10 @@
  ************************************************************************/
 
 #include "config.h"
+
+
+#define PROGRAM_VERSION "2.0"
+#define MODIFICATION_DATE "02-21-2002"
 
 
 #define OK		0
@@ -46,6 +50,8 @@
 #define MAX_HOSTNAME_LENGTH	64
 #define MAX_DESCRIPTION_LENGTH	128
 #define MAX_PLUGINOUTPUT_LENGTH	512
+
+#define MAX_PASSWORD_LENGTH     512
 
 
 /********************* ENCRYPTION TYPES ****************/
@@ -82,18 +88,34 @@
 #endif
 
 
-/**************** PACKET STRUCTURE DEFINITION **********/
 
-#define NSCA_PACKET_VERSION_1	1		/* packet version identifier (in case packet type changes in future versions) */
+/******************** MISC DEFINITIONS *****************/
 
-typedef struct packet_struct{
-	int       packet_version;
-	unsigned long       crc32_value;
+#define TRANSMITTED_IV_SIZE     128     /* size of IV to transmit - must be as big as largest IV needed for any crypto algorithm */
+
+
+/*************** PACKET STRUCTURE DEFINITIONS **********/
+
+#define NSCA_PACKET_VERSION_2	2		/* packet version identifier */
+#define NSCA_PACKET_VERSION_1	1		/* older packet version identifier */
+
+/* data packet containing service check results */
+typedef struct data_packet_struct{
+	int16_t   packet_version;
+	u_int32_t crc32_value;
+	u_int32_t timestamp;
+	int16_t   return_code;
 	char      host_name[MAX_HOSTNAME_LENGTH];
 	char      svc_description[MAX_DESCRIPTION_LENGTH];
-	int       return_code;
 	char      plugin_output[MAX_PLUGINOUTPUT_LENGTH];
-        }packet;
+        }data_packet;
+
+/* initialization packet containing IV and timestamp */
+typedef struct init_packet_struct{
+	char      iv[TRANSMITTED_IV_SIZE];
+	u_int32_t timestamp;
+        }init_packet;
+
 
 
 

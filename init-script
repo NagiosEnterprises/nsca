@@ -1,0 +1,65 @@
+#!/bin/sh
+#
+#  Last Modified 02-21-2002 Ethan Galstad (nagios@nagios.org)
+#  Notes
+#  This script takes care of starting and stopping the NSCA daemon.
+#  Modeled after init script for NRPE written by jaclu@grm.se
+#
+# chkconfig: 2345 80 30
+# description: nsca is a daemon for accepting service check results \
+#              from applications running on other hosts.
+# processname: nsca
+# config: /usr/local/nagios/etc/nsca.cfg
+
+# Source function library
+if [ -f /etc/rc.d/init.d/functions ]; then
+. /etc/rc.d/init.d/functions
+elif [ -f /etc/init.d/functions ]; then
+. /etc/init.d/functions
+elif [ -f /etc/rc.d/functions ]; then
+. /etc/rc.d/functions
+fi
+
+# Source networking configuration.
+. /etc/sysconfig/network
+
+# Check that networking is up.
+[ ${NETWORKING} = "no" ] && exit 0
+
+prefix=/usr/local/nagios
+exec_prefix=${prefix}
+NscaBin=${exec_prefix}/bin/nsca
+NscaCfg=${prefix}/etc/nsca.cfg
+
+# See how we were called.
+case "$1" in
+  start)
+	# Start daemons.
+	echo -n "Starting nsca: "
+	daemon $NscaBin -s -c $NscaCfg
+	RETVAL=$?
+	echo
+	touch /var/lock/subsys/nsca
+	;;
+  stop)
+	# Stop daemons.
+	echo -n "Shutting down nsca: "
+	killproc nsca
+	echo
+	rm -f /var/lock/subsys/nsca
+	;;
+  restart)
+	$0 stop
+	$0 start
+	;;
+  status)
+	status nsca
+	;;
+  *)
+	echo "Usage: nsca {start|stop|restart|status}"
+	exit 1
+esac
+
+exit 0
+
+

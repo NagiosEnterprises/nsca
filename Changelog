@@ -2,10 +2,39 @@
 NSCA Changelog
 **************
 
-1.2 - 06/23/2001
+2.0 - 02/21/2002
 ----------------
-- Name change
-- Version numbering change
+- Name and version change
+
+
+1.2.0 - 02/12/2002
+------------------
+- Compatability between older versions has been broken!
+- Server now sends client IV and timestamp, fixing
+  encryption problems and making it more resistent
+  to "replay" attacks (Ralf Ertzinger)
+- Random IV is now seeded from /dev/urandom instead
+  of time() if possible
+- Added directions on running under xinetd to README
+- Implemented Beej's sendall() to handle incomplete send()s
+- Added single-mode daemon code (David Luyer)
+- Fixed problem with aggregated writes (David Luyer)
+- Better autoconf detection of libmcrypt (Jay McCarthy)
+- Added ability to dump check results to alternate
+  dump file if command file does not exist (i.e. NetSaint
+  is not running)
+- Removed some old crud
+
+
+1.1.2 - 09/22/2001
+------------------
+- Added append_to_file option to allow for opening the
+  command file in either write or append mode
+- Explicit integer size in packet structure
+- NULL IV is used for both encryption/decryption.  This
+  leaves the daemon open to "replay" attacks, but will
+  disappear in future revisions when IV negotiation
+  between the client and daemon is implemented.
 
 
 1.1.1 - 04/26/2001
