@@ -533,7 +533,7 @@ fi
 PKG_NAME=nsca
 PKG_VERSION="2.5"
 PKG_HOME_URL="http://www.nagios.org/"
-PKG_REL_DATE="10-15-2003"
+PKG_REL_DATE="10-23-2003"
 
 
 ac_aux_dir=
@@ -1132,7 +1132,7 @@ EOF
 
 fi
 
-for ac_hdr in db.h ctype.h errno.h fcntl.h grp.h inttypes.h netdb.h pwd.h signal.h stdint.h strings.h string.h syslog.h unistd.h arpa/inet.h netinet/in.h sys/config.h sys/int_types.h sys/poll.h sys/types.h sys/time.h sys/resource.h sys/socket.h sys/stat.h sys/wait.h
+for ac_hdr in db.h ctype.h errno.h fcntl.h grp.h inttypes.h netdb.h pwd.h signal.h stdint.h strings.h string.h syslog.h tcpd.h unistd.h arpa/inet.h netinet/in.h sys/config.h sys/int_types.h sys/poll.h sys/types.h sys/time.h sys/resource.h sys/socket.h sys/stat.h sys/wait.h
 do
 ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6
@@ -1875,15 +1875,58 @@ else
 fi
 
 
+echo $ac_n "checking for main in -lwrap""... $ac_c" 1>&6
+echo "configure:1880: checking for main in -lwrap" >&5
+ac_lib_var=`echo wrap'_'main | sed 'y%./+-%__p_%'`
+if eval "test \"`echo '$''{'ac_cv_lib_$ac_lib_var'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  ac_save_LIBS="$LIBS"
+LIBS="-lwrap  $LIBS"
+cat > conftest.$ac_ext <<EOF
+#line 1888 "configure"
+#include "confdefs.h"
+
+int main() {
+main()
+; return 0; }
+EOF
+if { (eval echo configure:1895: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+  rm -rf conftest*
+  eval "ac_cv_lib_$ac_lib_var=yes"
+else
+  echo "configure: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+  rm -rf conftest*
+  eval "ac_cv_lib_$ac_lib_var=no"
+fi
+rm -f conftest*
+LIBS="$ac_save_LIBS"
+
+fi
+if eval "test \"`echo '$ac_cv_lib_'$ac_lib_var`\" = yes"; then
+  echo "$ac_t""yes" 1>&6
+  
+	LIBWRAPLIBS="$LIBWRAPLIBS -lwrap"
+	cat >> confdefs.h <<\EOF
+#define HAVE_LIBWRAP 1
+EOF
+
+	
+else
+  echo "$ac_t""no" 1>&6
+fi
+
+
 for ac_func in strdup strstr strtoul
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
-echo "configure:1882: checking for $ac_func" >&5
+echo "configure:1925: checking for $ac_func" >&5
 if eval "test \"`echo '$''{'ac_cv_func_$ac_func'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 1887 "configure"
+#line 1930 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char $ac_func(); below.  */
@@ -1906,7 +1949,7 @@ $ac_func();
 
 ; return 0; }
 EOF
-if { (eval echo configure:1910: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:1953: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else
@@ -1932,9 +1975,9 @@ done
 
 
 echo $ac_n "checking for type of socket size""... $ac_c" 1>&6
-echo "configure:1936: checking for type of socket size" >&5
+echo "configure:1979: checking for type of socket size" >&5
 cat > conftest.$ac_ext <<EOF
-#line 1938 "configure"
+#line 1981 "configure"
 #include "confdefs.h"
 #include <stdlib.h>
 #include <sys/types.h>
@@ -1944,7 +1987,7 @@ int main() {
 int a = send(1, (const void *)0, (size_t *) 0, (int *) 0);
 ; return 0; }
 EOF
-if { (eval echo configure:1948: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:1991: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   cat >> confdefs.h <<\EOF
 #define SOCKET_SIZE_TYPE size_t
@@ -2000,7 +2043,7 @@ fi
   # Extract the first word of "libmcrypt-config", so it can be a program name with args.
 set dummy libmcrypt-config; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:2004: checking for $ac_word" >&5
+echo "configure:2047: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_path_LIBMCRYPT_CONFIG'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2035,14 +2078,14 @@ fi
 
   min_libmcrypt_version=2.4.11
   echo $ac_n "checking for libmcrypt - version >= $min_libmcrypt_version""... $ac_c" 1>&6
-echo "configure:2039: checking for libmcrypt - version >= $min_libmcrypt_version" >&5
+echo "configure:2082: checking for libmcrypt - version >= $min_libmcrypt_version" >&5
   no_libmcrypt=""
   if test "$LIBMCRYPT_CONFIG" = "no" ; then
       if test "$cross_compiling" = yes; then
     { echo "configure: error: can not run test program while cross compiling" 1>&2; exit 1; }
 else
   cat > conftest.$ac_ext <<EOF
-#line 2046 "configure"
+#line 2089 "configure"
 #include "confdefs.h"
 
 #include <stdio.h>
@@ -2063,7 +2106,7 @@ main ()
 }
 
 EOF
-if { (eval echo configure:2067: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:2110: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   libmcrypt_config_version="2.2.0"
     if test x$libmcrypt_config_prefix != x ; then
@@ -2117,7 +2160,7 @@ EOF
   echo $ac_n "cross compiling; assumed OK... $ac_c"
 else
   cat > conftest.$ac_ext <<EOF
-#line 2121 "configure"
+#line 2164 "configure"
 #include "confdefs.h"
 
 #include <stdio.h>
@@ -2205,7 +2248,7 @@ main ()
 }
 
 EOF
-if { (eval echo configure:2209: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:2252: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   :
 else
@@ -2238,7 +2281,7 @@ fi
           CFLAGS="$CFLAGS $LIBMCRYPT_CFLAGS"
           LIBS="$LIBS $LIBMCRYPT_LIBS"
           cat > conftest.$ac_ext <<EOF
-#line 2242 "configure"
+#line 2285 "configure"
 #include "confdefs.h"
 
 #include <stdio.h>
@@ -2269,7 +2312,7 @@ return !!mcrypt_check_version(NULL);
 
 ; return 0; }
 EOF
-if { (eval echo configure:2273: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:2316: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
    echo "*** The test program compiled, but did not run. This usually means"
           echo "*** that the run-time linker is not finding LIBMCRYPT or finding the wrong"
@@ -2376,7 +2419,7 @@ EOF
 # Extract the first word of "perl", so it can be a program name with args.
 set dummy perl; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:2380: checking for $ac_word" >&5
+echo "configure:2423: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_path_PERL'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2503,6 +2546,7 @@ s%@CC@%$CC%g
 s%@SET_MAKE@%$SET_MAKE%g
 s%@CPP@%$CPP%g
 s%@SOCKETLIBS@%$SOCKETLIBS%g
+s%@LIBWRAPLIBS@%$LIBWRAPLIBS%g
 s%@LIBMCRYPT_CONFIG@%$LIBMCRYPT_CONFIG%g
 s%@LIBMCRYPT_CFLAGS@%$LIBMCRYPT_CFLAGS%g
 s%@LIBMCRYPT_LIBS@%$LIBMCRYPT_LIBS%g

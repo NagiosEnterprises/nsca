@@ -11,7 +11,7 @@ AC_PREFIX_DEFAULT(/usr/local/nagios)
 PKG_NAME=nsca
 PKG_VERSION="2.5"
 PKG_HOME_URL="http://www.nagios.org/"
-PKG_REL_DATE="10-15-2003"
+PKG_REL_DATE="10-23-2003"
 
 dnl Figure out how to invoke "install" and what install options to use.
 
@@ -26,7 +26,7 @@ dnl Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_TIME
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS(db.h ctype.h errno.h fcntl.h grp.h inttypes.h netdb.h pwd.h signal.h stdint.h strings.h string.h syslog.h unistd.h arpa/inet.h netinet/in.h sys/config.h sys/int_types.h sys/poll.h sys/types.h sys/time.h sys/resource.h sys/socket.h sys/stat.h sys/wait.h)
+AC_CHECK_HEADERS(db.h ctype.h errno.h fcntl.h grp.h inttypes.h netdb.h pwd.h signal.h stdint.h strings.h string.h syslog.h tcpd.h unistd.h arpa/inet.h netinet/in.h sys/config.h sys/int_types.h sys/poll.h sys/types.h sys/time.h sys/resource.h sys/socket.h sys/stat.h sys/wait.h)
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
@@ -83,6 +83,11 @@ dnl Checks for library functions.
 AC_CHECK_LIB(nsl,main,SOCKETLIBS="$SOCKETLIBS -lnsl")
 AC_CHECK_LIB(socket,socket,SOCKETLIBS="$SOCKETLIBS -lsocket")
 AC_SUBST(SOCKETLIBS)
+AC_CHECK_LIB(wrap,main,[
+	LIBWRAPLIBS="$LIBWRAPLIBS -lwrap"
+	AC_DEFINE(HAVE_LIBWRAP)
+	])
+AC_SUBST(LIBWRAPLIBS)
 AC_CHECK_FUNCS(strdup strstr strtoul)
 
 AC_MSG_CHECKING(for type of socket size)

@@ -6,6 +6,7 @@ NSCA Changelog
 2.5 - ??/??/2003
 ----------------
 - Host names can now be used in allowed host list
+- Native TCP wrapper support in daemon mode
 
 
 2.4 - 07/23/2003

@@ -4,7 +4,7 @@
  * Copyright (c) 2000-2003 Ethan Galstad (nagios@nagios.org)
  * License: GPL
  *
- * Last Modified: 10-15-2003
+ * Last Modified: 10-23-2003
  *
  * Command line: NSCA -c <config_file> [mode]
  *
@@ -21,7 +21,6 @@
 #include "../include/utils.h"
 
 
-static char allowed_hosts[MAX_INPUT_BUFFER];
 static int server_port=DEFAULT_SERVER_PORT;
 static char server_address[16]="0.0.0.0";
 static int socket_timeout=DEFAULT_SOCKET_TIMEOUT;
@@ -38,7 +37,6 @@ static void accept_connection(int,void *);
 static void handle_connection_read(int,void *);
 static int process_arguments(int,char **);
 static int read_config_file(char *);
-static int is_an_allowed_host(char *);
 static int open_command_file(void);
 static void close_command_file(void);
 static void install_child_handler(void);
@@ -78,6 +76,11 @@ int nrhand=0;
 int nwhand=0;
 int npfds=0;
 
+#ifdef HAVE_LIBWRAP
+int allow_severity=LOG_INFO;
+int deny_severity=LOG_WARNING;
+#endif
+
 
 
 int main(int argc, char **argv){
@@ -105,6 +108,9 @@ int main(int argc, char **argv){
                 printf("NOT AVAILABLE");
 #endif          
                 printf("\n");
+#ifdef HAVE_LIBWRAP
+		printf("TCP Wrappers Available\n");
+#endif
                 printf("\n");
 	        }
 
@@ -221,12 +227,11 @@ int main(int argc, char **argv){
         }
 
 
-
-/* exit cleanly */
-static void do_exit(int return_code){
+/* cleanup */
+static void do_cleanup(void){
 
         /* close the command file if its still open */
-        if (command_file_fp!=NULL)
+        if(command_file_fp!=NULL)
                 close_command_file();
 
 	/*** CLEAR SENSITIVE INFO FROM MEMORY ***/
@@ -237,7 +242,16 @@ static void do_exit(int return_code){
 	/* disguise decryption method */
 	decryption_method=-1;
 
-        exit(return_code);
+	return;
+        }
+
+
+/* exit cleanly */
+static void do_exit(int return_code){
+
+	do_cleanup();
+
+	exit(return_code);
         }
 
 
@@ -296,14 +310,6 @@ static int read_config_file(char *filename){
 		else if(!strcmp(varname,"server_address")){
                         strncpy(server_address,varvalue,sizeof(server_address) - 1);
                         server_address[sizeof(server_address)-1]='\0';
-                        }
-		else if(!strcmp(varname,"allowed_hosts")){
-                        if(strlen(varvalue)>sizeof(allowed_hosts)-1){
-                                syslog(LOG_ERR,"Allowed hosts list too long in config file '%s' - Line %d\n",filename,line);
-                                return ERROR;
-                                }
-                        strncpy(allowed_hosts,varvalue,sizeof(allowed_hosts));
-                        allowed_hosts[sizeof(allowed_hosts)-1]='\0';
                         }
 		else if(strstr(input_buffer,"command_file")){
                         if(strlen(varvalue)>sizeof(command_file)-1){
@@ -661,7 +667,6 @@ static void wait_for_connections(void) {
 
         if(debug==TRUE){
                 syslog(LOG_DEBUG,"Listening for connections on port %d\n",htons(myname.sin_port));
-                syslog(LOG_DEBUG,"Allowing connections from: %s\n",allowed_hosts);
                 }
 
         /* listen for connection requests */
@@ -687,7 +692,9 @@ static void accept_connection(int sock, void *unused){
         struct sockaddr_in *nptr;
         int addrlen;
         int rc;
-        char connecting_host[16];
+#ifdef HAVE_LIBWRAP
+	struct request_info req;
+#endif
 
         if(mode==SINGLE_PROCESS_DAEMON)
                 register_read_handler(sock, accept_connection, NULL);
@@ -754,32 +761,38 @@ static void accept_connection(int sock, void *unused){
         if(debug==TRUE)
                 syslog(LOG_DEBUG,"Connection from %s port %d",inet_ntoa(nptr->sin_addr),nptr->sin_port);
 
-        /* is this is blessed machine? */
-        snprintf(connecting_host,sizeof(connecting_host),"%s",inet_ntoa(nptr->sin_addr));
-        connecting_host[sizeof(connecting_host)-1]='\0';
+#ifdef HAVE_LIBWRAP
 
-        if(!is_an_allowed_host(connecting_host)){
+	/* Check whether or not connections are allowed from this host */
+	request_init(&req,RQ_DAEMON,"nsca",RQ_FILE,new_sd,0);
+	fromhost(&req);
 
-                /* log error to syslog facility */
-                syslog(LOG_ERR,"Host %s is not allowed to talk to us!", inet_ntoa(nptr->sin_addr));
+	if(!hosts_access(&req)){
+
+		syslog(LOG_DEBUG,"Connection refused by TCP wrapper");
+
+		/* cleanup */
+		do_cleanup();
+
+		/* refuse the connection */
+		refuse(&req);
 		close(new_sd);
-		if(mode==MULTI_PROCESS_DAEMON)
-			do_exit(STATE_CRITICAL);
- 		return;
-	        }
-	else{
 
-                /* log info to syslog facility */
-                if(debug==TRUE)
-                        syslog(LOG_DEBUG,"Host address checks out ok");
+		/* should not be reached */
+		syslog(LOG_ERR,"libwrap refuse() returns!");
+		exit(STATE_CRITICAL);
+		}
+#endif
 
-                if(mode==SINGLE_PROCESS_DAEMON)
-                        /* mark the connection as ready to be handled */
-                        register_write_handler(new_sd, handle_connection, NULL);
-                else
-                        /* handle the client connection */
-                        handle_connection(new_sd, NULL);
-                }
+	/* handle the connection */
+	if(mode==SINGLE_PROCESS_DAEMON)
+		/* mark the connection as ready to be handled */
+		register_write_handler(new_sd, handle_connection, NULL);
+	else
+		/* handle the client connection */
+		handle_connection(new_sd, NULL);
+
+	return;
         }
 
 
@@ -1000,59 +1013,6 @@ static void handle_connection_read(int sock, void *data){
         write_check_result(host_name,svc_description,return_code,plugin_output,time(NULL));
 
 	return;
-        }
-
-
-
-/* checks to see if a given host is allowed to talk to us */
-static int is_an_allowed_host(char *connecting_host){
-	char temp_buffer[MAX_INPUT_BUFFER];
-	char *temp_ptr;
-	int result=0;
-        struct hostent *myhost;
-	char **pptr;
-	char resolved_addr[INET6_ADDRSTRLEN];
-
-	/* try and match IP addresses first */
-	strncpy(temp_buffer,allowed_hosts,sizeof(temp_buffer));
-	temp_buffer[sizeof(temp_buffer)-1]='\x0';
-
-	for(temp_ptr=strtok(temp_buffer,",");temp_ptr!=NULL;temp_ptr=strtok(NULL,",")){
-
-		if(!strcmp(connecting_host,temp_ptr)){
-			result=1;
-			break;
-		        }
-	        }
-
-	/* try DNS lookups if needed */
-	if(result==0){
-
-		strncpy(temp_buffer,allowed_hosts,sizeof(temp_buffer));
-		temp_buffer[sizeof(temp_buffer)-1]='\x0';
-
-		for(temp_ptr=strtok(temp_buffer,",");temp_ptr!=NULL;temp_ptr=strtok(NULL,",")){
-
-			myhost=gethostbyname(temp_ptr);
-			if(myhost!=NULL){
-
-				/* check all addresses for the host... */
-				for(pptr=myhost->h_addr_list;*pptr!=NULL;pptr++){
-
-					inet_ntop(myhost->h_addrtype,*pptr,resolved_addr,sizeof(resolved_addr));
-					if(!strcmp(resolved_addr,connecting_host)){
-						result=1;
-						break;
-					        }
-					}
-			        }
-
-			if(result==1)
-				break;
-		        }
-	        }
-
-	return result;
         }
 
 

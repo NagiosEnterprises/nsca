@@ -2,7 +2,7 @@
 # Sample NSCA Daemon Config File 
 # Written by: Ethan Galstad (nagios@nagios.org)
 # 
-# Last Modified: 01-07-2002
+# Last Modified: 10-23-2003
 ####################################################
 
 
@@ -21,19 +21,6 @@ server_port=@nsca_port@
 # (thus listen) on all interfaces.
 
 #server_address=192.168.1.1
-
-
-
-# ALLOWED HOST ADDRESSES
-# This is a comma-delimited list of IP address of hosts that are allowed
-# to talk to the NSCA daemon.
-#
-# Note: The daemon only does rudimentary checking of the client's IP
-# address.  I would highly recommend running as a service under
-# inetd instead of as a standalone daemon and using TCP wrappers to
-# limit access.
-
-allowed_hosts=127.0.0.1
 
 
 
