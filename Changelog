@@ -2,7 +2,7 @@
 NSCA Changelog
 **************
 
-2.2 - ??/??/2002
+2.2 - 01/08/2002
 ----------------
 - Hopefully better support for Solaris (u_int32_t)
 - Syntax changes for command line arguments

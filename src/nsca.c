@@ -4,7 +4,7 @@
  * Copyright (c) 2000-2003 Ethan Galstad (nagios@nagios.org)
  * License: GPL
  *
- * Last Modified: 01-07-2003
+ * Last Modified: 01-08-2003
  *
  * Command line: NSCA -c <config_file> [mode]
  *
