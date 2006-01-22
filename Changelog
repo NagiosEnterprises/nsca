@@ -3,11 +3,13 @@ NSCA Changelog
 **************
 
 
-2.5 - ??/??/2003
+2.5 - 01/21/2006
 ----------------
-- Host names can now be used in allowed host list
 - Native TCP wrapper support in daemon mode
 - Memory leak fix and cleanup (Mark Ferlatte)
+- Compiler warning fix (David Binderman)
+- max_packet_age=0 will disable packet timestamp checks
+- New config.sub and config.guess for checking local system type
 
 
 2.4 - 07/23/2003

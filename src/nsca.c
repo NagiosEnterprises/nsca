@@ -1,10 +1,10 @@
 /*******************************************************************************
  *
  * NSCA.C - Nagios Service Check Acceptor
- * Copyright (c) 2000-2003 Ethan Galstad (nagios@nagios.org)
- * License: GPL
+ * Copyright (c) 2000-2006 Ethan Galstad (nagios@nagios.org)
+ * License: GPL v2
  *
- * Last Modified: 10-28-2003
+ * Last Modified: 01-21-2006
  *
  * Command line: NSCA -c <config_file> [mode]
  *
@@ -97,10 +97,10 @@ int main(int argc, char **argv){
 			printf("Incorrect command line arguments supplied\n");
                 printf("\n");
                 printf("NSCA - Nagios Service Check Acceptor\n");
-                printf("Copyright (c) 2000-2003 Ethan Galstad (nagios@nagios.org)\n");
+                printf("Copyright (c) 2000-2006 Ethan Galstad (www.nagios.org)\n");
                 printf("Version: %s\n",PROGRAM_VERSION);
                 printf("Last Modified: %s\n",MODIFICATION_DATE);
-                printf("License: GPL\n");
+                printf("License: GPL v2\n");
                 printf("Encryption Routines: ");
 #ifdef HAVE_LIBMCRYPT
                 printf("AVAILABLE");
@@ -690,7 +690,7 @@ static void accept_connection(int sock, void *unused){
         pid_t pid;
         struct sockaddr addr;
         struct sockaddr_in *nptr;
-        int addrlen;
+        socklen_t addrlen;
         int rc;
 #ifdef HAVE_LIBWRAP
 	struct request_info req;
@@ -960,7 +960,7 @@ static void handle_connection_read(int sock, void *data){
                 }
 	else{
                 packet_age=(unsigned long)(current_time-packet_time);
-                if(packet_age > max_packet_age){
+                if(max_packet_age>0 && (packet_age>max_packet_age)){
                         syslog(LOG_ERR,"Dropping packet with stale timestamp - packet was %lu seconds old.",packet_age);
                         /*return;*/
 			close(sock);

@@ -3,9 +3,9 @@
  * NETUTILS.C - NSCA Network Utilities
  *
  * License: GPL
- * Copyright (c) 1999-2003 Ethan Galstad (nagios@nagios.org)
+ * Copyright (c) 1999-2006 Ethan Galstad (nagios@nagios.org)
  *
- * Last Modified: 10-15-2003
+ * Last Modified: 01-21-2006
  *
  * Description:
  *
@@ -212,7 +212,7 @@ int my_inet_aton(register const char *cp, struct in_addr *addr){
 int sendall(int s, char *buf, int *len){
 	int total=0;
 	int bytesleft=*len;
-	int n;
+	int n=0;
 
 	while(total<*len){
 		n=send(s,buf+total,bytesleft,0);
@@ -234,7 +234,7 @@ int sendall(int s, char *buf, int *len){
 int recvall(int s, char *buf, int *len, int timeout){
 	int total=0;
 	int bytesleft=*len;
-	int n;
+	int n=0;
 	time_t start_time;
 	time_t current_time;
 	
