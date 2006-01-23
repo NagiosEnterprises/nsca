@@ -1,5 +1,5 @@
 %define name nsca
-%define version 2.4
+%define version 2.5
 %define release 1
 %define nsusr nagios
 %define nsgrp nagios
@@ -117,9 +117,9 @@ make all
 
 %install
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
-install -b -D -m 0644 nsca.cfg ${RPM_BUILD_ROOT}/etc/nagios/nsca.cfg
-install -b -D -m 0644 send_nsca.cfg ${RPM_BUILD_ROOT}/etc/nagios/send_nsca.cfg
-install -b -D -m 0644 nsca.xinetd ${RPM_BUILD_ROOT}/etc/xined.d/nsca
+install -b -D -m 0644 sample-config/nsca.cfg ${RPM_BUILD_ROOT}/etc/nagios/nsca.cfg
+install -b -D -m 0644 sample-config/send_nsca.cfg ${RPM_BUILD_ROOT}/etc/nagios/send_nsca.cfg
+install -b -D -m 0644 sample-config/nsca.xinetd ${RPM_BUILD_ROOT}/etc/xined.d/nsca
 install -b -D -m 0755 src/nsca ${RPM_BUILD_ROOT}/usr/sbin/nsca
 install -b -D -m 0755 src/send_nsca ${RPM_BUILD_ROOT}/usr/bin/send_nsca
 

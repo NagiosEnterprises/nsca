@@ -3,6 +3,11 @@ NSCA Changelog
 **************
 
 
+2.6 - ??/??/2006
+----------------
+- Spec file fix
+
+
 2.5 - 01/21/2006
 ----------------
 - Native TCP wrapper support in daemon mode
