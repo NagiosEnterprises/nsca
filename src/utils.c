@@ -3,9 +3,9 @@
  * UTILS.C - Utility functions for NSCA
  *
  * License: GPL
- * Copyright (c) 2000-2003 Ethan Galstad (nagios@nagios.org)
+ * Copyright (c) 2000-2006 Ethan Galstad (nagios@nagios.org)
  *
- * Last Modified: 10-24-2003
+ * Last Modified: 02-02-2006
  *
  * Description:
  *
@@ -258,10 +258,6 @@ void encrypt_cleanup(int encryption_method, struct crypt_instance *CI){
 		CI->key=NULL;
 		free(CI->IV);
 		CI->IV=NULL;
-		free(CI->mcrypt_algorithm);
-		CI->mcrypt_algorithm=NULL;
-		free(CI->mcrypt_mode);
-		CI->mcrypt_mode=NULL;
 		}
 #endif
 

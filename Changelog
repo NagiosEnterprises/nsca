@@ -6,6 +6,7 @@ NSCA Changelog
 2.6 - ??/??/2006
 ----------------
 - Spec file fix
+- Segfault fix in encryption library cleanup
 
 
 2.5 - 01/21/2006
