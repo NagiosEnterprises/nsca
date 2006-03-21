@@ -4,7 +4,7 @@
  * Copyright (c) 2000-2006 Ethan Galstad (nagios@nagios.org)
  * License: GPL v2
  *
- * Last Modified: 01-21-2006
+ * Last Modified: 03-21-2006
  *
  * Command line: NSCA -c <config_file> [mode]
  *
@@ -40,8 +40,11 @@ static int read_config_file(char *);
 static int open_command_file(void);
 static void close_command_file(void);
 static void install_child_handler(void);
-static int drop_privileges(char *,char *);
+static int get_user_info(const char *, uid_t *);
+static int get_group_info(const char *, gid_t *);
+static int drop_privileges(const char *,uid_t,gid_t);
 static int write_check_result(char *,char *,int,char *,time_t);
+static void do_chroot(void);
 static void do_exit(int);
 
 static enum { OPTIONS_ERROR, SINGLE_PROCESS_DAEMON, MULTI_PROCESS_DAEMON, INETD } mode=SINGLE_PROCESS_DAEMON;
@@ -53,6 +56,8 @@ static unsigned long max_packet_age=30;
 
 char *nsca_user=NULL;
 char *nsca_group=NULL;
+
+char *nsca_chroot=NULL;
 
 int show_help=FALSE;
 int show_license=FALSE;
@@ -86,6 +91,8 @@ int deny_severity=LOG_WARNING;
 int main(int argc, char **argv){
         char buffer[MAX_INPUT_BUFFER];
         int result;
+        uid_t uid=-1;
+        gid_t gid=-1;
 
 
 	/* process command-line arguments */
@@ -140,7 +147,7 @@ int main(int argc, char **argv){
 
 
         /* open a connection to the syslog facility */
-        openlog("nsca",LOG_PID,LOG_DAEMON); 
+        openlog("nsca",LOG_PID|LOG_NDELAY,LOG_DAEMON); 
 
 	/* make sure the config file uses an absolute path */
 	if(config_file[0]!='/'){
@@ -177,6 +184,9 @@ int main(int argc, char **argv){
         switch(mode){
 
         case INETD:
+		/* chroot if configured */
+		do_chroot();
+
                 /* if we're running under inetd, handle one connection and get out */
                 handle_connection(0,NULL);
                 break;
@@ -206,25 +216,33 @@ int main(int argc, char **argv){
 			open("/dev/null",O_WRONLY);
 			open("/dev/null",O_WRONLY);
 
+			/* get group information before chrooting */
+			get_user_info(nsca_user,&uid);
+			get_group_info(nsca_group,&gid);
+
+			/* chroot if configured */
+			do_chroot();
+
 			/* drop privileges */
-			drop_privileges(nsca_user,nsca_group);
+			if(drop_privileges(nsca_user,uid,gid)==ERROR)
+				do_exit(STATE_CRITICAL);
 
                         /* wait for connections */
                         wait_for_connections();
-                        }
+		        }
                 break;
 
         default:
                 break;
-                }
-
+	        }
+	
         /* We are now running in daemon mode, or the connection handed over by inetd has
            been completed, so the parent process exits */
         do_exit(STATE_OK);
 
 	/* keep the compilers happy... */
 	return STATE_OK;
-        }
+	}
 
 
 /* cleanup */
@@ -407,6 +425,9 @@ static int read_config_file(char *filename){
 
                 else if(!strcmp(varname,"nsca_group"))
 			nsca_group=strdup(varvalue);
+
+                else if(!strcmp(varname,"nsca_chroot"))
+			nsca_chroot=strdup(varvalue);
 
 		else{
                         syslog(LOG_ERR,"Unknown option specified in config file '%s' - Line %d\n",filename,line);
@@ -1008,6 +1029,7 @@ static void handle_connection_read(int sock, void *data){
         }
 
 
+
 /* writes service/host check results to the Nagios command file */
 static int write_check_result(char *host_name, char *svc_description, int return_code, char *plugin_output, time_t check_time){
 
@@ -1139,47 +1161,16 @@ int process_arguments(int argc, char **argv){
 
 
 
-/* drops privileges */
-static int drop_privileges(char *user, char *group){
-	uid_t uid=-1;
-	gid_t gid=-1;
-	struct group *grp;
-	struct passwd *pw;
-
-	/* set effective group ID */
-	if(group!=NULL){
-		
-		/* see if this is a group name */
-		if(strspn(group,"0123456789")<strlen(group)){
-			grp=(struct group *)getgrnam(group);
-			if(grp!=NULL)
-				gid=(gid_t)(grp->gr_gid);
-			else
-				syslog(LOG_ERR,"Warning: Could not get group entry for '%s'",group);
-			endgrent();
-		        }
-
-		/* else we were passed the GID */
-		else
-			gid=(gid_t)atoi(group);
-
-		/* set effective group ID if other than current EGID */
-		if(gid!=getegid()){
-
-			if(setgid(gid)==-1)
-				syslog(LOG_ERR,"Warning: Could not set effective GID=%d",(int)gid);
-		        }
-	        }
-
-
-	/* set effective user ID */
+/* get user information */
+static int get_user_info(const char *user, uid_t *uid){
+	const struct passwd *pw=NULL;
+	
 	if(user!=NULL){
-		
 		/* see if this is a user name */
 		if(strspn(user,"0123456789")<strlen(user)){
 			pw=(struct passwd *)getpwnam(user);
 			if(pw!=NULL)
-				uid=(uid_t)(pw->pw_uid);
+				*uid=(uid_t)(pw->pw_uid);
 			else
 				syslog(LOG_ERR,"Warning: Could not get passwd entry for '%s'",user);
 			endpwent();
@@ -1187,27 +1178,103 @@ static int drop_privileges(char *user, char *group){
 
 		/* else we were passed the UID */
 		else
-			uid=(uid_t)atoi(user);
-			
-#ifdef HAVE_INITGROUPS
+			*uid=(uid_t)atoi(user);
 
-		if(uid!=geteuid()){
+	        } 
+	else
+		*uid=geteuid();
 
-			/* initialize supplementary groups */
-			if(initgroups(user,gid)==-1){
-				if(errno==EPERM)
-					syslog(LOG_ERR,"Warning: Unable to change supplementary groups using initgroups()");
-				else{
-					syslog(LOG_ERR,"Warning: Possibly root user failed dropping privileges with initgroups()");
-					return ERROR;
-			                }
-	                        }
+	return OK;
+        }
+
+
+
+/* get group information */
+static int get_group_info(const char *group, gid_t *gid){
+	const struct group *grp=NULL;
+	
+	/* get group ID */
+	if(group!=NULL){
+		/* see if this is a group name */
+		if(strspn(group,"0123456789")<strlen(group)){
+			grp=(struct group *)getgrnam(group);
+			if(grp!=NULL)
+				*gid=(gid_t)(grp->gr_gid);
+			else
+				syslog(LOG_ERR,"Warning: Could not get group entry for '%s'",group);
+			endgrent();
 		        }
+
+		/* else we were passed the GID */
+		else
+			*gid=(gid_t)atoi(group);
+	        } 
+	else
+		*gid=getegid();
+
+	return OK;
+        }
+
+
+
+/* drops privileges */
+static int drop_privileges(const char *user, uid_t uid, gid_t gid){
+	struct group *grp;
+	struct passwd *pw;
+
+	/* only drop privileges if we're running as root, so we don't interfere with being debugged while running as some random user */
+	if(getuid()!=0)
+		return OK;
+
+	/* set effective group ID if other than current EGID */
+	if(gid!=getegid()){
+		if(setgid(gid)==-1){
+			syslog(LOG_ERR,"Warning: Could not set effective GID=%d",(int)gid);
+			return ERROR;
+		        }
+	        }
+
+#ifdef HAVE_INITGROUPS
+	if(uid!=geteuid()){
+		/* initialize supplementary groups */
+		if(initgroups(user,gid)==-1){
+			if(errno==EPERM)
+				syslog(LOG_ERR,"Warning: Unable to change supplementary groups using initgroups()");
+			else{
+				syslog(LOG_ERR,"Warning: Possibly root user failed dropping privileges with initgroups()");
+				return ERROR;
+			        }
+		        }
+	        }
 #endif
 
-		if(setuid(uid)==-1)
-			syslog(LOG_ERR,"Warning: Could not set effective UID=%d",(int)uid);
+	if(setuid(uid)==-1){
+		syslog(LOG_ERR,"Warning: Could not set effective UID=%d",(int)uid);
+		return ERROR;
 	        }
 
 	return OK;
+        }
+
+
+
+/* perform the chroot() operation if configured to do so */
+void do_chroot(void){
+	int retval=0;
+	const char *err=NULL;
+
+	if(nsca_chroot!=NULL){
+		retval=chdir(nsca_chroot);
+		if(retval!=0){
+			err=strerror(errno);
+			syslog(LOG_ERR, "can not chdir into chroot directory: %s", err);
+			do_exit(STATE_UNKNOWN);
+		        }
+		retval=chroot(".");
+		if(retval!=0){
+			err=strerror(errno);
+			syslog(LOG_ERR, "can not chroot: %s", err);
+			do_exit(STATE_UNKNOWN);
+		        }
+	        }
         }

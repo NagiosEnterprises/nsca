@@ -7,6 +7,8 @@ NSCA Changelog
 ----------------
 - Spec file fix
 - Segfault fix in encryption library cleanup
+- Daemon now exits with an error if it can't drop privileges
+- Added chroot support (Sean Finney)
 
 
 2.5 - 01/21/2006

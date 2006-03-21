@@ -2,7 +2,7 @@
 # Sample NSCA Daemon Config File 
 # Written by: Ethan Galstad (nagios@nagios.org)
 # 
-# Last Modified: 01-21-2006
+# Last Modified: 03-21-2006
 ####################################################
 
 
@@ -41,6 +41,19 @@ nsca_user=@nsca_user@
 # NOTE: This option is ignored if NSCA is running under either inetd or xinetd
 
 nsca_group=@nsca_grp@
+
+
+
+# NSCA CHROOT
+# If specified, determines a directory into which the nsca daemon
+# will perform a chroot(2) operation before dropping its privileges.
+# for the security conscious this can add a layer of protection in
+# the event that the nagios daemon is compromised.  
+# 
+# NOTE: if you specify this option, the command file will be opened
+#       relative to this directory.
+
+#nsca_chroot=/var/run/nagios/rw
 
 
 
