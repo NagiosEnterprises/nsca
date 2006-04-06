@@ -2,8 +2,16 @@
 # Sample NSCA Daemon Config File 
 # Written by: Ethan Galstad (nagios@nagios.org)
 # 
-# Last Modified: 03-21-2006
+# Last Modified: 04-03-2006
 ####################################################
+
+
+# PID FILE
+# The name of the file in which the NSCA daemon should write it's process ID
+# number.  The file is only written if the NSCA daemon is started by the root
+# user as a single- or multi-process daemon.
+
+pid_file=/var/run/nsca.pid
 
 
 

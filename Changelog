@@ -3,12 +3,14 @@ NSCA Changelog
 **************
 
 
-2.6 - ??/??/2006
+2.6 - 04/06/2006
 ----------------
 - Spec file fix
 - Segfault fix in encryption library cleanup
 - Daemon now exits with an error if it can't drop privileges
 - Added chroot support (Sean Finney)
+- Added support for writing a PID file
+- Added support for reloading config files with SIGHUP
 
 
 2.5 - 01/21/2006

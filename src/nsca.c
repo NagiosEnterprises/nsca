@@ -4,7 +4,7 @@
  * Copyright (c) 2000-2006 Ethan Galstad (nagios@nagios.org)
  * License: GPL v2
  *
- * Last Modified: 03-21-2006
+ * Last Modified: 04-06-2006
  *
  * Command line: NSCA -c <config_file> [mode]
  *
@@ -19,6 +19,7 @@
 #include "../include/config.h"
 #include "../include/netutils.h"
 #include "../include/utils.h"
+#include "../include/nsca.h"
 
 
 static int server_port=DEFAULT_SERVER_PORT;
@@ -30,23 +31,6 @@ static char alternate_dump_file[MAX_INPUT_BUFFER]="/dev/null";
 static char command_file[MAX_INPUT_BUFFER]="";
 static char password[MAX_INPUT_BUFFER]="";
 
-static void handle_events(void);
-static void wait_for_connections(void);
-static void handle_connection(int,void *);
-static void accept_connection(int,void *);
-static void handle_connection_read(int,void *);
-static int process_arguments(int,char **);
-static int read_config_file(char *);
-static int open_command_file(void);
-static void close_command_file(void);
-static void install_child_handler(void);
-static int get_user_info(const char *, uid_t *);
-static int get_group_info(const char *, gid_t *);
-static int drop_privileges(const char *,uid_t,gid_t);
-static int write_check_result(char *,char *,int,char *,time_t);
-static void do_chroot(void);
-static void do_exit(int);
-
 static enum { OPTIONS_ERROR, SINGLE_PROCESS_DAEMON, MULTI_PROCESS_DAEMON, INETD } mode=SINGLE_PROCESS_DAEMON;
 static int debug=FALSE;
 static int aggregate_writes=FALSE;
@@ -54,36 +38,36 @@ static int decryption_method=ENCRYPT_XOR;
 static int append_to_file=FALSE;
 static unsigned long max_packet_age=30;
 
-char *nsca_user=NULL;
-char *nsca_group=NULL;
+char    *nsca_user=NULL;
+char    *nsca_group=NULL;
 
-char *nsca_chroot=NULL;
+char    *nsca_chroot=NULL;
 
-int show_help=FALSE;
-int show_license=FALSE;
-int show_version=FALSE;
+char    *pid_file=NULL;
+int     wrote_pid_file=FALSE;
+
+int     show_help=FALSE;
+int     show_license=FALSE;
+int     show_version=FALSE;
+
+int     sigrestart=FALSE;
+int     sigshutdown=FALSE;
 
 static FILE *command_file_fp=NULL;
-
-struct handler_entry{
-	void (*handler)(int, void *);
-	void *data;
-	int fd;
-        };
 
 struct handler_entry *rhand=NULL;
 struct handler_entry *whand=NULL;
 struct pollfd *pfds=NULL;
-int maxrhand=0;
-int maxwhand=0;
-int maxpfds=0;
-int nrhand=0;
-int nwhand=0;
-int npfds=0;
-
+int     maxrhand=0;
+int     maxwhand=0;
+int     maxpfds=0;
+int     nrhand=0;
+int     nwhand=0;
+int     npfds=0;
+	
 #ifdef HAVE_LIBWRAP
-int allow_severity=LOG_INFO;
-int deny_severity=LOG_WARNING;
+int     allow_severity=LOG_INFO;
+int     deny_severity=LOG_WARNING;
 #endif
 
 
@@ -192,19 +176,29 @@ int main(int argc, char **argv){
                 break;
 
         case MULTI_PROCESS_DAEMON:
+
 		/* older style, mult-process daemon */
 		/* execution cascades below... */
                 install_child_handler();
 
+		/*     |
+		       |
+		       |     */
         case SINGLE_PROCESS_DAEMON:
+		/*     |
+		       |
+		       V     */
+
                 /* daemonize and start listening for requests... */
                 if(fork()==0){
 
                         /* we're a daemon - set up a new process group */
                         setsid();
 
-			/* ignore SIGHUP */
-			signal(SIGHUP, SIG_IGN);
+			/* handle signals */
+			signal(SIGQUIT,sighandler);
+			signal(SIGTERM,sighandler);
+			signal(SIGHUP,sighandler);
 
 			/* close standard file descriptors */
                         close(0);
@@ -220,6 +214,10 @@ int main(int argc, char **argv){
 			get_user_info(nsca_user,&uid);
 			get_group_info(nsca_group,&gid);
 
+			/* write pid file */
+			if(write_pid_file(uid,gid)==ERROR)
+				return STATE_CRITICAL;
+		
 			/* chroot if configured */
 			do_chroot();
 
@@ -227,8 +225,33 @@ int main(int argc, char **argv){
 			if(drop_privileges(nsca_user,uid,gid)==ERROR)
 				do_exit(STATE_CRITICAL);
 
-                        /* wait for connections */
-                        wait_for_connections();
+			do{
+
+				/* reset flags */
+				sigrestart=FALSE;
+				sigshutdown=FALSE;
+
+				/* wait for connections */
+				wait_for_connections();
+
+				if(sigrestart==TRUE){
+
+					/* re-read the config file */
+					result=read_config_file(config_file);	
+
+					/* exit if there are errors... */
+					if(result==ERROR){
+						syslog(LOG_ERR,"Config file '%s' contained errors, bailing out...",config_file);
+						break;
+						}
+					}
+	
+				}while(sigrestart==TRUE && sigshutdown==FALSE);
+
+			/* remove pid file */
+			remove_pid_file();
+
+			syslog(LOG_NOTICE,"Daemon shutdown\n");
 		        }
                 break;
 
@@ -236,8 +259,7 @@ int main(int argc, char **argv){
                 break;
 	        }
 	
-        /* We are now running in daemon mode, or the connection handed over by inetd has
-           been completed, so the parent process exits */
+	/* we are now running in daemon mode, or the connection handed over by inetd has been completed, so the parent process exits */
         do_exit(STATE_OK);
 
 	/* keep the compilers happy... */
@@ -252,7 +274,7 @@ static void do_cleanup(void){
         if(command_file_fp!=NULL)
                 close_command_file();
 
-	/*** CLEAR SENSITIVE INFO FROM MEMORY ***/
+ 	/*** CLEAR SENSITIVE INFO FROM MEMORY ***/
 
         /* overwrite password */
         clear_buffer(password,sizeof(password));
@@ -429,6 +451,9 @@ static int read_config_file(char *filename){
                 else if(!strcmp(varname,"nsca_chroot"))
 			nsca_chroot=strdup(varvalue);
 
+		else if(!strcmp(varname,"pid_file"))
+			pid_file=strdup(varvalue);
+
 		else{
                         syslog(LOG_ERR,"Unknown option specified in config file '%s' - Line %d\n",filename,line);
 
@@ -601,6 +626,10 @@ static void handle_events(void){
         void *data;
         int i, hand;
         
+	/* bail out if necessary */
+	if(sigrestart==TRUE || sigshutdown==TRUE)
+		return;
+
         poll(pfds,npfds,-1);
         for(i=0;i<npfds;i++){
                 if((pfds[i].events&POLLIN) && (pfds[i].revents&(POLLIN|POLLERR|POLLHUP|POLLNVAL))){
@@ -639,7 +668,7 @@ static void handle_events(void){
 /* wait for incoming connection requests */
 static void wait_for_connections(void) {
         struct sockaddr_in myname;
-        int sock;
+        int sock=0;
         int flag=1;
 
         /* create a socket for listening */
@@ -690,14 +719,28 @@ static void wait_for_connections(void) {
                 syslog(LOG_DEBUG,"Listening for connections on port %d\n",htons(myname.sin_port));
                 }
 
+	/* socket should be non-blocking for mult-process daemon */
+	if(mode==MULTI_PROCESS_DAEMON)
+		fcntl(sock,F_SETFL,O_NONBLOCK);
+
         /* listen for connection requests */
-        if(mode==MULTI_PROCESS_DAEMON){
-                while(1)
-                        accept_connection(sock,NULL);
-                }
-	else{
+        if(mode==SINGLE_PROCESS_DAEMON)
                 register_read_handler(sock,accept_connection,NULL);
-                while(1)
+	while(1){
+
+		/* bail out if necessary */
+		if(sigrestart==TRUE || sigshutdown==TRUE){
+			/* close the socket we're listening on */
+			close(sock);
+			break;
+			}
+
+		/* accept a new connection */
+		if(mode==MULTI_PROCESS_DAEMON)
+			accept_connection(sock,NULL);
+
+		/* handle the new connection (if any) */
+		else
                         handle_events();
                 }
 
@@ -717,22 +760,35 @@ static void accept_connection(int sock, void *unused){
 	struct request_info req;
 #endif
 
+	/* REMOVED 04/03/2006 EG - already done in wait_for_connections() */
+	/*
         if(mode==SINGLE_PROCESS_DAEMON)
-                register_read_handler(sock, accept_connection, NULL);
+                register_read_handler(sock,accept_connection,NULL);
+	*/
 
         /* wait for a connection request */
         while(1){
-                new_sd=accept(sock,0,0);
-                if(new_sd>=0)
+
+		/* we got a live one... */
+                if((new_sd=accept(sock,0,0))>=0)
                         break;
-                if(errno==EWOULDBLOCK || errno==EINTR){
-                        if(mode==MULTI_PROCESS_DAEMON)
-                                sleep(1);
-                        else
-                                return;
-                        }
-		else
-                        break;
+
+		/* handle the error */
+		else{
+
+			/* bail out if necessary */
+			if(sigrestart==TRUE || sigshutdown==TRUE)
+				return;
+
+			if(errno==EWOULDBLOCK || errno==EINTR){
+				if(mode==MULTI_PROCESS_DAEMON)
+					sleep(1);
+				else
+					return;
+				}
+			else
+				break;
+			}
                 }
 
         /* hey, there was an error... */
@@ -1161,6 +1217,80 @@ int process_arguments(int argc, char **argv){
 
 
 
+/* write an optional pid file */
+static int write_pid_file(uid_t usr, gid_t grp){
+	int fd;
+	int result=0;
+	pid_t pid=0;
+	char pbuf[16];
+
+	/* no pid file was specified */
+	if(pid_file==NULL)
+		return OK;
+
+	/* read existing pid file */
+	if((fd=open(pid_file,O_RDONLY))>=0){
+
+		result=read(fd,pbuf,(sizeof pbuf)-1);
+
+		close(fd);
+
+		if(result>0){
+
+			pbuf[result]='\x0';
+			pid=(pid_t)atoi(pbuf);
+
+			/* if previous process is no longer running running, remove the old pid file */
+			if(pid && (pid==getpid() || kill(pid,0)<0))
+				unlink(pid_file);
+
+			/* previous process is still running */
+			else{
+				syslog(LOG_ERR,"There's already an NSCA server running (PID %lu).  Bailing out...",(unsigned long)pid);
+				return ERROR;
+			        }
+		        }
+	        } 
+
+	/* write new pid file */
+	if((fd=open(pid_file,O_WRONLY | O_CREAT,0644))>=0){
+		sprintf(pbuf,"%d\n",(int)getpid());
+		write(fd,pbuf,strlen(pbuf));
+		fchown(fd,usr,grp);
+		close(fd);
+		wrote_pid_file=TRUE;
+	        }
+	else{
+		syslog(LOG_ERR,"Cannot write to pidfile '%s' - check your privileges.",pid_file);
+	        }
+
+	return OK;
+        }
+
+
+
+/* remove pid file */
+static int remove_pid_file(void){
+
+	/* no pid file was specified */
+	if(pid_file==NULL)
+		return OK;
+
+	/* pid file was not written */
+	if(wrote_pid_file==FALSE)
+		return OK;
+
+	/* remove existing pid file */
+	if(unlink(pid_file)==-1){
+		syslog(LOG_ERR,"Cannot remove pidfile '%s' - check your privileges.",pid_file);
+		return ERROR;
+	        }
+
+	return OK;
+        }
+
+
+
 /* get user information */
 static int get_user_info(const char *user, uid_t *uid){
 	const struct passwd *pw=NULL;
@@ -1278,3 +1408,42 @@ void do_chroot(void){
 		        }
 	        }
         }
+
+
+
+/* handle signals */
+void sighandler(int sig){
+	static char *sigs[]={"EXIT","HUP","INT","QUIT","ILL","TRAP","ABRT","BUS","FPE","KILL","USR1","SEGV","USR2","PIPE","ALRM","TERM","STKFLT","CHLD","CONT","STOP","TSTP","TTIN","TTOU","URG","XCPU","XFSZ","VTALRM","PROF","WINCH","IO","PWR","UNUSED","ZERR","DEBUG",(char *)NULL};
+	int i;
+	char temp_buffer[MAX_INPUT_BUFFER];
+
+	if(sig<0)
+		sig=-sig;
+
+	for(i=0;sigs[i]!=(char *)NULL;i++);
+
+	sig%=i;
+
+	/* we received a SIGHUP, so restart... */
+	if(sig==SIGHUP){
+
+		sigrestart=TRUE;
+
+		syslog(LOG_NOTICE,"Caught SIGHUP - restarting...\n");
+	        }
+
+	/* else begin shutting down... */
+	if(sig==SIGTERM){
+
+		/* if shutdown is already true, we're in a signal trap loop! */
+		if(sigshutdown==TRUE)
+			exit(STATE_CRITICAL);
+
+		sigshutdown=TRUE;
+
+		syslog(LOG_NOTICE,"Caught SIG%s - shutting down...\n",sigs[sig]);
+	        }
+
+	return;
+        }
+
