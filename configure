@@ -6216,7 +6216,7 @@ if test x$MCRYPTLIBFOUND = xnope; then
 	echo ""
 	echo "You can download libmcrypt from:"
 	echo ""
-	echo "        http://mcrypt.hellug.gr/"
+	echo "        http://mcrypt.sourceforge.net/"
 	echo ""
 	echo ""
 	echo "NOTE: After you install the MCRYPT library on your system:"
