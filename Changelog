@@ -3,6 +3,12 @@ NSCA Changelog
 **************
 
 
+2.7 - 12/13/2006
+----------------
+- Fixed crash from malformed command line
+- Updated to config.sub and config.guess to latest from GNU Savannah
+
+
 2.6 - 04/06/2006
 ----------------
 - Spec file fix

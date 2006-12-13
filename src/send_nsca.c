@@ -4,7 +4,7 @@
  * License: GPL v2
  * Copyright (c) 2000-2006 Ethan Galstad (nagios@nagios.org)
  *
- * Last Modified: 04-06-2006
+ * Last Modified: 12-13-2006
  *
  * Command line: SEND_NSCA <host_address> [-p port] [-to to_sec] [-c config_file]
  *
@@ -421,7 +421,7 @@ int process_arguments(int argc, char **argv){
 		/* config file */
 		else if(!strcmp(argv[x-1],"-c")){
 			if(x<argc){
-				snprintf(config_file,sizeof(config_file),argv[x]);
+				snprintf(config_file,sizeof(config_file),"%s",argv[x]);
 				config_file[sizeof(config_file)-1]='\x0';
 				x++;
 			        }
@@ -432,7 +432,7 @@ int process_arguments(int argc, char **argv){
 		/* delimiter to use when parsing input */
 		else if(!strcmp(argv[x-1],"-d")){
 			if(x<argc){
-				snprintf(delimiter,sizeof(delimiter),argv[x]);
+				snprintf(delimiter,sizeof(delimiter),"%s",argv[x]);
 				delimiter[sizeof(delimiter)-1]='\x0';
 				x++;
 			        }
