@@ -1,10 +1,10 @@
 /*******************************************************************************
  *
  * NSCA.C - Nagios Service Check Acceptor
- * Copyright (c) 2000-2006 Ethan Galstad (nagios@nagios.org)
+ * Copyright (c) 2000-2007 Ethan Galstad (nagios@nagios.org)
  * License: GPL v2
  *
- * Last Modified: 12-13-2006
+ * Last Modified: 01-29-2007
  *
  * Command line: NSCA -c <config_file> [mode]
  *
@@ -88,7 +88,7 @@ int main(int argc, char **argv){
 			printf("Incorrect command line arguments supplied\n");
                 printf("\n");
                 printf("NSCA - Nagios Service Check Acceptor\n");
-                printf("Copyright (c) 2000-2006 Ethan Galstad (www.nagios.org)\n");
+                printf("Copyright (c) 2000-2007 Ethan Galstad (www.nagios.org)\n");
                 printf("Version: %s\n",PROGRAM_VERSION);
                 printf("Last Modified: %s\n",MODIFICATION_DATE);
                 printf("License: GPL v2\n");
@@ -760,11 +760,9 @@ static void accept_connection(int sock, void *unused){
 	struct request_info req;
 #endif
 
-	/* REMOVED 04/03/2006 EG - already done in wait_for_connections() */
-	/*
+	/* DO NOT REMOVE! 01/29/2007 single process daemon will fail if this is removed */
         if(mode==SINGLE_PROCESS_DAEMON)
                 register_read_handler(sock,accept_connection,NULL);
-	*/
 
         /* wait for a connection request */
         while(1){

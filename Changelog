@@ -3,6 +3,12 @@ NSCA Changelog
 **************
 
 
+2.7.1 - 01/29/2007
+------------------
+- Fixed bug that prevented single mode daemon from working properly
+- Added sample scripts for testing functionality to nsca_tests/ (Ton Voon/Altinity)
+
+
 2.7 - 12/13/2006
 ----------------
 - Fixed crash from malformed command line

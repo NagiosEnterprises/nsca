@@ -1,0 +1,38 @@
+NSCA Tests
+==========
+Originally contributed by Ton Voon/Altinity 01/26/2007.
+
+These tests are designed to make sure that the Nagios daemon can start up
+and accept messages by comparing the output in the dummy nagios.cmd file with
+the sent data.
+
+There are 3 tests at the moment:
+
+    * basic - just sends a few passive checks and makes sure that the nagios.cmd file receives them
+
+    * multiple - runs the same as basic, but several times to check the daemon can handle multiple requests
+
+    * simultaneous - runs lots of send_nscas at the same time (well, nearly). Uses Parallel::Forker to setup all the sends then executes them all at once. Expect about 200 extra processes to hit your server!
+
+
+Requirements
+------------
+You will need to have the following CPAN modules installed: 
+
+Test::More
+Class::Struct
+Clone
+Parallel::Forker
+
+
+Running the Tests
+-----------------
+1. Run the NSCA configure script and compile the NSCA binaries
+
+2. Run the tests from this directory by running the following command:
+
+	./runtests
+
+
+
+
