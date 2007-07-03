@@ -4,7 +4,7 @@
  * Copyright (c) 2000-2007 Ethan Galstad (nagios@nagios.org)
  * License: GPL v2
  *
- * Last Modified: 01-29-2007
+ * Last Modified: 07-03-2007
  *
  * Command line: NSCA -c <config_file> [mode]
  *
@@ -778,7 +778,8 @@ static void accept_connection(int sock, void *unused){
 			if(sigrestart==TRUE || sigshutdown==TRUE)
 				return;
 
-			if(errno==EWOULDBLOCK || errno==EINTR){
+			/* try and handle temporary errors */
+			if(errno==EWOULDBLOCK || errno==EINTR || errno==ECHILD){
 				if(mode==MULTI_PROCESS_DAEMON)
 					sleep(1);
 				else
@@ -797,6 +798,8 @@ static void accept_connection(int sock, void *unused){
 
                 /* close socket prior to exiting */
                 close(sock);
+		if(mode==MULTI_PROCESS_DAEMON)
+			do_exit(STATE_CRITICAL);
 		return;
                 }
 

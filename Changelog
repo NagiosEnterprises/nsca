@@ -3,6 +3,11 @@ NSCA Changelog
 **************
 
 
+2.7.2 - 07/03/2007
+------------------
+- Fixed bug with NSCA daemon eating CPU if child process couldn't accept a connection in multi-process mode (Chris Wilson)
+
+
 2.7.1 - 01/29/2007
 ------------------
 - Fixed bug that prevented single mode daemon from working properly
