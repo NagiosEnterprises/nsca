@@ -197,6 +197,10 @@ if test x$MCRYPTLIBFOUND = xnope; then
 fi
 
 
+AC_ARG_WITH(log_facility,--with-log-facility=<facility> sets NSCA syslog facility,log_facility=$withval,log_facility=daemon)
+AC_SUBST(log_facility)
+AC_DEFINE_UNQUOTED(NSCA_LOG_FACILITY,["$log_facility"])
+
 AC_ARG_WITH(nsca_user,--with-nsca-user=<user> sets user name to run NSCA,nsca_user=$withval,nsca_user=nagios)
 AC_ARG_WITH(nsca_grp,--with-nsca-grp=<grp> sets group name to run NSCA,nsca_grp=$withval,nsca_grp=nagios)
 AC_ARG_WITH(nsca_port,--with-nsca-port=<port> sets port number for NSCA to listen on,nsca_port=$withval,nsca_port=5667)

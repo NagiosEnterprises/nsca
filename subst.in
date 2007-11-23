@@ -23,6 +23,7 @@ while ($f = shift @ARGV) {
 		s|\@nsca_user\@|@nsca_user@|g;
 		s|\@nsca_grp\@|@nsca_grp@|g;
 		s|\@nsca_port\@|@nsca_port@|g;
+		s|\@log_facility\@|@log_facility@|g;
 		s|\@libexecdir\@|@libexecdir@|g; # put all --with-vars before directories
 		s|\@localstatedir\@|@localstatedir@|g;
 		s|\@sysconfdir\@|@sysconfdir@|g;

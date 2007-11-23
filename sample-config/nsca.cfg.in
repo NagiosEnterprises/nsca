@@ -2,8 +2,15 @@
 # Sample NSCA Daemon Config File 
 # Written by: Ethan Galstad (nagios@nagios.org)
 # 
-# Last Modified: 04-03-2006
+# Last Modified: 11-23-2007
 ####################################################
+
+
+# LOG FACILITY
+# The syslog facility that should be used for logging purposes.
+
+log_facility=@log_facility@
+
 
 
 # PID FILE

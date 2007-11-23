@@ -4,7 +4,7 @@
  * Copyright (c) 2000-2007 Ethan Galstad (nagios@nagios.org)
  * License: GPL v2
  *
- * Last Modified: 07-03-2007
+ * Last Modified: 11-23-2007
  *
  * Command line: NSCA -c <config_file> [mode]
  *
@@ -25,6 +25,7 @@
 static int server_port=DEFAULT_SERVER_PORT;
 static char server_address[16]="0.0.0.0";
 static int socket_timeout=DEFAULT_SOCKET_TIMEOUT;
+static int log_facility=LOG_DAEMON;
 
 static char config_file[MAX_INPUT_BUFFER]="nsca.cfg";
 static char alternate_dump_file[MAX_INPUT_BUFFER]="/dev/null";
@@ -131,7 +132,9 @@ int main(int argc, char **argv){
 
 
         /* open a connection to the syslog facility */
-        openlog("nsca",LOG_PID|LOG_NDELAY,LOG_DAEMON); 
+	/* facility may be overridden later */
+	get_log_facility(NSCA_LOG_FACILITY);
+        openlog("nsca",LOG_PID|LOG_NDELAY,log_facility); 
 
 	/* make sure the config file uses an absolute path */
 	if(config_file[0]!='/'){
@@ -454,6 +457,16 @@ static int read_config_file(char *filename){
 		else if(!strcmp(varname,"pid_file"))
 			pid_file=strdup(varvalue);
 
+		else if(!strcmp(varname,"log_facility")){
+			if((get_log_facility(varvalue))==OK){
+				/* re-open log using new facility */
+				closelog();
+				openlog("nsca",LOG_PID|LOG_NDELAY,log_facility); 
+				}
+			else
+				syslog(LOG_WARNING,"Invalid log_facility specified in config file '%s' - Line %d\n",filename,line);
+			}
+
 		else{
                         syslog(LOG_ERR,"Unknown option specified in config file '%s' - Line %d\n",filename,line);
 
@@ -466,6 +479,59 @@ static int read_config_file(char *filename){
 
         return OK;
         }
+
+
+
+/* determines facility to use with syslog */
+int get_log_facility(char *varvalue){
+
+	if(!strcmp(varvalue,"kern"))
+		log_facility=LOG_KERN;
+	else if(!strcmp(varvalue,"user"))
+		log_facility=LOG_USER;
+	else if(!strcmp(varvalue,"mail"))
+		log_facility=LOG_MAIL;
+	else if(!strcmp(varvalue,"daemon"))
+		log_facility=LOG_DAEMON;
+	else if(!strcmp(varvalue,"auth"))
+		log_facility=LOG_AUTH;
+	else if(!strcmp(varvalue,"syslog"))
+		log_facility=LOG_SYSLOG;
+	else if(!strcmp(varvalue,"lrp"))
+		log_facility=LOG_LPR;
+	else if(!strcmp(varvalue,"news"))
+		log_facility=LOG_NEWS;
+	else if(!strcmp(varvalue,"uucp"))
+		log_facility=LOG_UUCP;
+	else if(!strcmp(varvalue,"cron"))
+		log_facility=LOG_CRON;
+	else if(!strcmp(varvalue,"authpriv"))
+		log_facility=LOG_AUTHPRIV;
+	else if(!strcmp(varvalue,"ftp"))
+		log_facility=LOG_FTP;
+	else if(!strcmp(varvalue,"local0"))
+		log_facility=LOG_LOCAL0;
+	else if(!strcmp(varvalue,"local1"))
+		log_facility=LOG_LOCAL1;
+	else if(!strcmp(varvalue,"local2"))
+		log_facility=LOG_LOCAL2;
+	else if(!strcmp(varvalue,"local3"))
+		log_facility=LOG_LOCAL3;
+	else if(!strcmp(varvalue,"local4"))
+		log_facility=LOG_LOCAL4;
+	else if(!strcmp(varvalue,"local5"))
+		log_facility=LOG_LOCAL5;
+	else if(!strcmp(varvalue,"local6"))
+		log_facility=LOG_LOCAL6;
+	else if(!strcmp(varvalue,"local7"))
+		log_facility=LOG_LOCAL7;
+	else{
+		log_facility=LOG_DAEMON;
+		return ERROR;
+		}
+
+	return OK;
+	}
 
 
 

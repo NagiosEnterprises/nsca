@@ -3,6 +3,11 @@ NSCA Changelog
 **************
 
 
+2.8 - ??/??/2007
+----------------
+- Added --with-log-facility option to control syslog logging (Ryan Ordway and Brian Seklecki)
+
+
 2.7.2 - 07/03/2007
 ------------------
 - Fixed bug with NSCA daemon eating CPU if child process couldn't accept a connection in multi-process mode (Chris Wilson)

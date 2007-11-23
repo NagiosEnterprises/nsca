@@ -1,8 +1,8 @@
 /************************************************************************
  *
  * NSCA.H - NSCA Include File
- * Copyright (c) 1999-2006 Ethan Galstad (nagios@nagios.org)
- * Last Modified: 04-03-2006
+ * Copyright (c) 1999-2007 Ethan Galstad (nagios@nagios.org)
+ * Last Modified: 11-23-2007
  *
  * License:
  *
@@ -38,6 +38,8 @@ static void install_child_handler(void);
 
 static int process_arguments(int,char **);
 static int read_config_file(char *);
+
+int get_log_facility(char *);
 
 static int open_command_file(void);
 static void close_command_file(void);

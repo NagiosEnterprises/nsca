@@ -310,7 +310,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA INSTALL build build_cpu build_vendor build_os host host_cpu host_vendor host_os CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT SET_MAKE CPP EGREP SOCKETLIBS LIBWRAPLIBS LIBMCRYPT_CONFIG LIBMCRYPT_CFLAGS LIBMCRYPT_LIBS nsca_user nsca_grp nsca_port PERL LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA INSTALL build build_cpu build_vendor build_os host host_cpu host_vendor host_os CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT SET_MAKE CPP EGREP SOCKETLIBS LIBWRAPLIBS LIBMCRYPT_CONFIG LIBMCRYPT_CFLAGS LIBMCRYPT_LIBS log_facility nsca_user nsca_grp nsca_port PERL LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -848,6 +848,7 @@ Optional Packages:
 --with-mcrypt-lib=DIR sets location of the mcrypt client library
 --with-mcrypt-inc=DIR sets location of the mcrypt client include files
   --with-libmcrypt-prefix=PFX   Prefix where libmcrypt is installed (optional)
+--with-log-facility=<facility> sets NSCA syslog facility
 --with-nsca-user=<user> sets user name to run NSCA
 --with-nsca-grp=<grp> sets group name to run NSCA
 --with-nsca-port=<port> sets port number for NSCA to listen on
@@ -6234,6 +6235,20 @@ fi
 
 
 
+# Check whether --with-log_facility or --without-log_facility was given.
+if test "${with_log_facility+set}" = set; then
+  withval="$with_log_facility"
+  log_facility=$withval
+else
+  log_facility=daemon
+fi;
+
+cat >>confdefs.h <<_ACEOF
+#define NSCA_LOG_FACILITY "$log_facility"
+_ACEOF
+
+
+
 # Check whether --with-nsca_user or --without-nsca_user was given.
 if test "${with_nsca_user+set}" = set; then
   withval="$with_nsca_user"
@@ -6892,6 +6907,7 @@ s,@LIBWRAPLIBS@,$LIBWRAPLIBS,;t t
 s,@LIBMCRYPT_CONFIG@,$LIBMCRYPT_CONFIG,;t t
 s,@LIBMCRYPT_CFLAGS@,$LIBMCRYPT_CFLAGS,;t t
 s,@LIBMCRYPT_LIBS@,$LIBMCRYPT_LIBS,;t t
+s,@log_facility@,$log_facility,;t t
 s,@nsca_user@,$nsca_user,;t t
 s,@nsca_grp@,$nsca_grp,;t t
 s,@nsca_port@,$nsca_port,;t t
