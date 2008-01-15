@@ -1,10 +1,10 @@
 /*******************************************************************************
  *
  * NSCA.C - Nagios Service Check Acceptor
- * Copyright (c) 2000-2007 Ethan Galstad (nagios@nagios.org)
+ * Copyright (c) 2000-2008 Ethan Galstad (nagios@nagios.org)
  * License: GPL v2
  *
- * Last Modified: 11-23-2007
+ * Last Modified: 01-15-2008
  *
  * Command line: NSCA -c <config_file> [mode]
  *
@@ -54,6 +54,7 @@ int     show_version=FALSE;
 int     sigrestart=FALSE;
 int     sigshutdown=FALSE;
 
+int	using_alternate_dump_file=FALSE;
 static FILE *command_file_fp=NULL;
 
 struct handler_entry *rhand=NULL;
@@ -989,7 +990,7 @@ static void handle_connection(int sock, void *data){
                 }
 
         /* open the command file if we're aggregating writes */
-        if(aggregate_writes==TRUE && !command_file_fp){
+        if(aggregate_writes==TRUE){
                 if(open_command_file()==ERROR){
                         close(sock);
 			if(mode==MULTI_PROCESS_DAEMON)
@@ -1185,7 +1186,7 @@ static int open_command_file(void){
 	struct stat statbuf;
 
         /* file is already open */
-        if(command_file_fp!=NULL)
+        if(command_file_fp!=NULL && using_alternate_dump_file==FALSE)
                 return OK;
 
 	/* command file doesn't exist - monitoring app probably isn't running... */
@@ -1201,6 +1202,7 @@ static int open_command_file(void){
 				syslog(LOG_ERR,"Could not open alternate dump file '%s' for appending",alternate_dump_file);
 			return ERROR;
                         }
+		using_alternate_dump_file=TRUE;
 
 		return OK;
 	        }
@@ -1213,6 +1215,7 @@ static int open_command_file(void){
                 return ERROR;
                 }
 
+	using_alternate_dump_file=FALSE;
         return OK;
         }
 

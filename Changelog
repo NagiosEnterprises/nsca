@@ -6,6 +6,8 @@ NSCA Changelog
 2.8 - ??/??/2007
 ----------------
 - Added --with-log-facility option to control syslog logging (Ryan Ordway and Brian Seklecki)
+- Fixed bug where daemon would segfault if mcrypt library was not initialized before timeout (Holger Weiss)
+- Fixed bug with switching from dump file to command file when running under single mode (Ton Voon)
 
 
 2.7.2 - 07/03/2007

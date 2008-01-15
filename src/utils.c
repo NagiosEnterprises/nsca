@@ -3,9 +3,9 @@
  * UTILS.C - Utility functions for NSCA
  *
  * License: GPL
- * Copyright (c) 2000-2006 Ethan Galstad (nagios@nagios.org)
+ * Copyright (c) 2000-2008 Ethan Galstad (nagios@nagios.org)
  *
- * Last Modified: 02-02-2006
+ * Last Modified: 01-15-2008
  *
  * Description:
  *
@@ -36,6 +36,9 @@
 /*#define DEBUG*/
 
 static unsigned long crc32_table[256];
+#ifdef HAVE_LIBMCRYPT
+static volatile sig_atomic_t mcrypt_initialized=FALSE;
+#endif
 
 
 
@@ -235,7 +238,7 @@ int encrypt_init(char *password,int encryption_method,char *received_iv,struct c
         
         /* initialize encryption buffers */
         mcrypt_generic_init(CI->td,CI->key,CI->keysize,CI->IV);
-
+        mcrypt_initialized=TRUE;
 #endif
 
         return OK;
@@ -253,7 +256,8 @@ void encrypt_cleanup(int encryption_method, struct crypt_instance *CI){
 #ifdef HAVE_LIBMCRYPT
         /* mcrypt cleanup */
         if(encryption_method!=ENCRYPT_NONE && encryption_method!=ENCRYPT_XOR){
-        	mcrypt_generic_end(CI->td);
+		if(mcrypt_initialized==TRUE)
+			mcrypt_generic_end(CI->td);
 		free(CI->key);
 		CI->key=NULL;
 		free(CI->IV);
