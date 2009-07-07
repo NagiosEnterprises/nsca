@@ -1,10 +1,11 @@
 /*******************************************************************************
  *
  * NSCA.C - Nagios Service Check Acceptor
- * Copyright (c) 2000-2008 Ethan Galstad (nagios@nagios.org)
+ * Copyright (c) 2009 Nagios Core Development Team and Community Contributors
+ * Copyright (c) 2000-2009 Ethan Galstad (egalstad@nagios.org)
  * License: GPL v2
  *
- * Last Modified: 01-15-2008
+ * Last Modified: 07-09-2009
  *
  * Command line: NSCA -c <config_file> [mode]
  *
@@ -90,7 +91,8 @@ int main(int argc, char **argv){
 			printf("Incorrect command line arguments supplied\n");
                 printf("\n");
                 printf("NSCA - Nagios Service Check Acceptor\n");
-                printf("Copyright (c) 2000-2007 Ethan Galstad (www.nagios.org)\n");
+		printf("Copyright (c) 2009 Nagios Core Development Team and Community Contributors\n");
+                printf("Copyright (c) 2000-2009 Ethan Galstad\n");
                 printf("Version: %s\n",PROGRAM_VERSION);
                 printf("Last Modified: %s\n",MODIFICATION_DATE);
                 printf("License: GPL v2\n");
@@ -240,6 +242,9 @@ int main(int argc, char **argv){
 
 				if(sigrestart==TRUE){
 
+					/* free memory */
+					free_memory();
+
 					/* re-read the config file */
 					result=read_config_file(config_file);	
 
@@ -274,6 +279,9 @@ int main(int argc, char **argv){
 /* cleanup */
 static void do_cleanup(void){
 
+	/* free memory */
+	free_memory();
+
         /* close the command file if its still open */
         if(command_file_fp!=NULL)
                 close_command_file();
@@ -288,6 +296,31 @@ static void do_cleanup(void){
 
 	return;
         }
+
+
+/* free some memory */
+static void free_memory(void){
+
+	if(nsca_user){
+		free(nsca_user);
+		nsca_user=NULL;
+		}
+	if(nsca_group){
+		free(nsca_group);
+		nsca_group=NULL;
+		}
+	if(nsca_chroot){
+		free(nsca_chroot);
+		nsca_chroot=NULL;
+		}
+	if(pid_file){
+		free(pid_file);
+		pid_file=NULL;
+		}
+
+	return;
+	}
+
 
 
 /* exit cleanly */

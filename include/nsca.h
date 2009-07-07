@@ -1,8 +1,8 @@
 /************************************************************************
  *
  * NSCA.H - NSCA Include File
- * Copyright (c) 1999-2007 Ethan Galstad (nagios@nagios.org)
- * Last Modified: 11-23-2007
+ * Copyright (c) 1999-2009 Ethan Galstad (nagios@nagios.org)
+ * Last Modified: 07-07-2009
  *
  * License:
  *
@@ -50,6 +50,7 @@ static int get_group_info(const char *,gid_t *);
 static int drop_privileges(const char *,uid_t,gid_t);
 static void do_chroot(void);
 static void do_exit(int);
+static void free_memory(void);
 
 static int write_pid_file(uid_t,gid_t);
 static int remove_pid_file(void);
