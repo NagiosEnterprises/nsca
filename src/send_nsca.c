@@ -27,6 +27,7 @@ char server_name[MAX_HOST_ADDRESS_LENGTH];
 char password[MAX_INPUT_BUFFER]="";
 char config_file[MAX_INPUT_BUFFER]="send_nsca.cfg";
 char delimiter[2]="\t";
+char block_delimiter[2]=BLOCK_DELIMITER;
 
 char received_iv[TRANSMITTED_IV_SIZE];
 
@@ -61,6 +62,7 @@ int main(int argc, char **argv){
 	int result;
 	data_packet send_packet;
 	int bytes_to_send;
+	char input[MAX_INPUT_BUFFER];
 	char input_buffer[MAX_INPUT_BUFFER];
 	char *temp_ptr;
 	char host_name[MAX_HOSTNAME_LENGTH];
@@ -69,7 +71,7 @@ int main(int argc, char **argv){
 	int total_packets=0;
 	int16_t return_code;
 	u_int32_t calculated_crc32;
-	char *ptr1, *ptr2, *ptr3, *ptr4;
+	char *inputptr, *ptr1, *ptr2, *ptr3, *ptr4;
 
 
 	/* process command-line arguments */
@@ -114,8 +116,9 @@ int main(int argc, char **argv){
 		printf("Service Checks:\n");
 		printf("<host_name>[tab]<svc_description>[tab]<return_code>[tab]<plugin_output>[newline]\n\n");
 		printf("Host Checks:\n");
-		printf("<host_name>[tab]<return_code>[tab]<plugin_output>[newline]\n");
-		printf("\n");
+		printf("<host_name>[tab]<return_code>[tab]<plugin_output>[newline]\n\n");
+		printf("When submitting multiple simultaneous results, separate each set with the ETB\n");
+                printf("character (^W or 0x17)\n");
 	        }
 
 	if(show_license==TRUE)
@@ -186,11 +189,23 @@ int main(int argc, char **argv){
 	/**** WE'RE CONNECTED AND READY TO SEND ****/
 
 	/* read all data from STDIN until there isn't anymore */
-	while(fgets(input_buffer,sizeof(input_buffer)-1,stdin)){
 
-		if(feof(stdin))
+	while(!feof(stdin)){
+		int c = getc(stdin);
+		if (c == -1){
 			break;
-
+			}
+		int pos = 0;
+		while (c != 23){
+			if (c == -1){	// in case we don't terminate properly
+					// or are in single-input mode.
+				break;
+				}
+			input_buffer[pos] = c;
+			c = getc(stdin);
+			pos++;
+			}
+		input_buffer[pos] = 0;
 		strip(input_buffer);
 
 		if(!strcmp(input_buffer,""))
@@ -212,22 +227,23 @@ int main(int argc, char **argv){
 			continue;
 
 		/* get the plugin output - if NULL, this is a host check result */
-		ptr4=strtok(NULL,"\n");
+		ptr4=strtok(NULL,"\x0");
 		
 		strncpy(host_name,ptr1,sizeof(host_name)-1);
 		host_name[sizeof(host_name)-1]='\x0';
 		if(ptr4==NULL){
 			strcpy(svc_description,"");
 			return_code=atoi(ptr2);
-			if(plugin_output[strlen(plugin_output)-1]=='\n')
-				plugin_output[strlen(plugin_output)-1]='\x0';
+                        ptr3=escape_newlines(ptr3);
 			strncpy(plugin_output,ptr3,sizeof(plugin_output)-1);
 		        }
 		else{
 			strncpy(svc_description,ptr2,sizeof(svc_description)-1);
 			return_code=atoi(ptr3);
+                        ptr4=escape_newlines(ptr4);
 			strncpy(plugin_output,ptr4,sizeof(plugin_output)-1);
 		        }
+
 		svc_description[sizeof(svc_description)-1]='\x0';
 		plugin_output[sizeof(plugin_output)-1]='\x0';
 

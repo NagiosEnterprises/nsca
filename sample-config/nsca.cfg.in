@@ -11,6 +11,11 @@
 
 log_facility=@log_facility@
 
+# Check Result directory.  If passed, skip command pipe and submit
+# directly into the checkresult directory.  Requires Nagios 3+
+# For best results, mount dir on ramdisk.
+
+#check_result_path=/usr/local/nagios/var/checkresults
 
 
 # PID FILE

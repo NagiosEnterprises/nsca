@@ -24,8 +24,8 @@
 #include "config.h"
 
 
-#define PROGRAM_VERSION "2.7.2"
-#define MODIFICATION_DATE "07-03-2007"
+#define PROGRAM_VERSION "2.9"
+#define MODIFICATION_DATE "08-04-2011"
 
 
 #define OK		0
@@ -39,18 +39,19 @@
 #define STATE_WARNING 	1
 #define STATE_OK       	0
 
-
 #define DEFAULT_SOCKET_TIMEOUT	10	/* timeout after 10 seconds */
 
-#define MAX_INPUT_BUFFER	2048	/* max size of most buffers we use */
+#define MAX_INPUT_BUFFER	5120	/* max size of most buffers we use */
 
 #define MAX_HOST_ADDRESS_LENGTH	256	/* max size of a host address */
 
 #define MAX_HOSTNAME_LENGTH	64
 #define MAX_DESCRIPTION_LENGTH	128
-#define MAX_PLUGINOUTPUT_LENGTH	512
+#define MAX_PLUGINOUTPUT_LENGTH	4096
 
 #define MAX_PASSWORD_LENGTH     512
+
+#define BLOCK_DELIMITER  "\x17"
 
 
 /********************* ENCRYPTION TYPES ****************/

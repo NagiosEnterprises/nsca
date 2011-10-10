@@ -44,6 +44,8 @@ char    *nsca_user=NULL;
 char    *nsca_group=NULL;
 
 char    *nsca_chroot=NULL;
+char    *check_result_path=NULL;
+
 
 char    *pid_file=NULL;
 int     wrote_pid_file=FALSE;
@@ -465,6 +467,27 @@ static int read_config_file(char *filename){
                         else 
                                 aggregate_writes=FALSE;
                         }
+                    else if(strstr(input_buffer,"check_result_path")){
+                            if(strlen(varvalue)>MAX_INPUT_BUFFER-1){
+                                    syslog(LOG_ERR,"Check result path is too long in config file '%s' - Line %d\n",filename,line);
+                                    return ERROR;
+                                    }
+                            check_result_path=strdup(varvalue);
+                            
+                            int checkresult_test_fd=-1;
+                            char *checkresult_test=NULL;
+                            asprintf(&checkresult_test,"%s/nsca.test.%i",check_result_path,getpid());
+                            checkresult_test_fd=open(checkresult_test,O_WRONLY|O_CREAT);
+                            if (checkresult_test_fd>0){
+                                    unlink(checkresult_test);
+                                    }
+                            else {
+                                    printf("error!\n");
+                                    syslog(LOG_ERR,"check_result_path config variable found, but directory not writeable.\n");
+                                    return ERROR;
+                                    }
+                            }
+
 		else if(strstr(input_buffer,"append_to_file")){
                         if(atoi(varvalue)>0)
                                 append_to_file=TRUE;
@@ -503,7 +526,6 @@ static int read_config_file(char *filename){
 
 		else{
                         syslog(LOG_ERR,"Unknown option specified in config file '%s' - Line %d\n",filename,line);
-
                         return ERROR;
                         }
                 }
@@ -1180,16 +1202,83 @@ static void handle_connection_read(int sock, void *data){
          * use poll() - which fails on a pipe with any data, so it would cause us to
          * only ever write one command at a time into the pipe.
          */
+        //syslog(LOG_ERR,"'%s' (%s) []",check_result_path, strlen(check_result_path));
+        if (check_result_path==NULL){
         write_check_result(host_name,svc_description,return_code,plugin_output,time(NULL));
+        }else{
+                write_checkresult_file(host_name,svc_description,return_code,plugin_output,time(NULL));
+        }
 
 	return;
         }
 
 
 
+/* writes service/host check results to the Nagios checkresult directory */
+static int write_checkresult_file(char *host_name, char *svc_description, int return_code, char *plugin_output, time_t check_time){
+	if(debug==TRUE)
+		syslog(LOG_ERR,"Attempting to write checkresult file");
+        mode_t new_umask=077;
+        mode_t old_umask;
+        time_t current_time;
+        char *output_file=NULL;
+        int checkresult_file_fd=-1;
+        char *checkresult_file=NULL;
+        char *checkresult_ok_file=NULL;
+        FILE *checkresult_file_fp=NULL;
+        FILE *checkresult_ok_file_fp=NULL;
+        /* change and store umask */
+        old_umask=umask(new_umask);
+
+        /* create safe checkresult file */
+        asprintf(&checkresult_file,"%s/cXXXXXX",check_result_path);
+        checkresult_file_fd=mkstemp(checkresult_file);
+        if(checkresult_file_fd>0){
+                checkresult_file_fp=fdopen(checkresult_file_fd,"w");
+        } else {
+                syslog(LOG_ERR,"Unable to open and write checkresult file '%s', failing back to PIPE",checkresult_file);
+                return write_check_result(host_name,svc_description,return_code,plugin_output,check_time);
+                }
+        
+	if(debug==TRUE)
+		syslog(LOG_ERR,"checkresult file '%s' open for write.",checkresult_file);
+
+        time(&current_time);
+        fprintf(checkresult_file_fp,"### NSCA Passive Check Result ###\n");
+        fprintf(checkresult_file_fp,"# Time: %s",ctime(&current_time));
+        fprintf(checkresult_file_fp,"file_time=%d\n\n",current_time);
+        fprintf(checkresult_file_fp,"### %s Check Result ###\n",(svc_description=="")?"Host":"Service");
+        fprintf(checkresult_file_fp,"host_name=%s\n",host_name);
+        if(strcmp(svc_description,""))
+                fprintf(checkresult_file_fp,"service_description=%s\n",svc_description);
+        fprintf(checkresult_file_fp,"check_type=1\n");
+        fprintf(checkresult_file_fp,"scheduled_check=0\n");
+        fprintf(checkresult_file_fp,"reschedule_check=0\n");
+        /* We have no latency data at this point. */
+        fprintf(checkresult_file_fp,"latency=0\n");
+        fprintf(checkresult_file_fp,"start_time=%lu.%lu\n",check_time,0L);
+        fprintf(checkresult_file_fp,"finish_time=%lu.%lu\n",check_time,0L);
+        fprintf(checkresult_file_fp,"return_code=%d\n",return_code);
+        /* newlines in output are already escaped */
+        fprintf(checkresult_file_fp,"output=%s\n",(plugin_output==NULL)?"":plugin_output);
+        fprintf(checkresult_file_fp,"\n");
+
+        fclose(checkresult_file_fp);
+        /* create and close ok file */
+        asprintf(&checkresult_ok_file,"%s.ok",checkresult_file);
+        syslog(LOG_DEBUG,"checkresult completion file '%s' open.",checkresult_ok_file);
+        checkresult_ok_file_fp = fopen(checkresult_ok_file,"w");
+        fclose(checkresult_ok_file_fp);
+        /* reset umask */
+        umask(old_umask);
+
+        return OK;
+        }
+
 /* writes service/host check results to the Nagios command file */
 static int write_check_result(char *host_name, char *svc_description, int return_code, char *plugin_output, time_t check_time){
-
+	if(debug==TRUE)
+		syslog(LOG_ERR,"Attempting to write to nagios command pipe");
         if(aggregate_writes==FALSE){
                 if(open_command_file()==ERROR)
                         return ERROR;
@@ -1197,9 +1286,9 @@ static int write_check_result(char *host_name, char *svc_description, int return
 
 	if(!strcmp(svc_description,""))
 		fprintf(command_file_fp,"[%lu] PROCESS_HOST_CHECK_RESULT;%s;%d;%s\n",(unsigned long)check_time,host_name,return_code,plugin_output);
-	else
+	else{
 		fprintf(command_file_fp,"[%lu] PROCESS_SERVICE_CHECK_RESULT;%s;%s;%d;%s\n",(unsigned long)check_time,host_name,svc_description,return_code,plugin_output);
-
+                }
         if(aggregate_writes==FALSE)
                 close_command_file();
         else
