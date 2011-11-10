@@ -2,6 +2,11 @@
 NSCA Changelog
 **************
 
+?.? - ??/??/????
+----------------
+- Applied patch to allow packets arriving with a future time stamp (Daniel Wittenberg)
+
+
 2.9 - 11/04/2011
 ----------------
 - Add config directive to submit directly to checkresults directory (Mike Lindsey)

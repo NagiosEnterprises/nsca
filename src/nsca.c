@@ -1146,40 +1146,29 @@ static void handle_connection_read(int sock, void *data){
                         do_exit(STATE_OK);
                  }
 
-        /* check the timestamp in the packet */
-        packet_time=(time_t)ntohl(receive_packet.timestamp);
-        time(&current_time);
-        if(packet_time>current_time){
-                syslog(LOG_ERR,"Dropping packet with future timestamp.");
-                /*return;*/
+        /* host name */
+        strncpy(host_name,receive_packet.host_name,sizeof(host_name)-1);
+        host_name[sizeof(host_name)-1]='\0';
+
+        packet_age=(unsigned long)(current_time-packet_time);
+        if(debug==TRUE)
+                  syslog(LOG_ERR,"Time difference in packet: %lu seconds for host %s", packet_age, host_name);
+        if((max_packet_age>0 && (packet_age>max_packet_age) && (packet_age>=0)) ||
+                ((max_packet_age>0) && (packet_age<(0-max_packet_age)) && (packet_age < 0))
+        ){
+                syslog(LOG_ERR,"Dropping packet with stale timestamp for %s - packet was %lu seconds old.",host_name,packet_age);
 		close(sock);
                 if(mode==SINGLE_PROCESS_DAEMON)
                         return;
                 else
                         do_exit(STATE_OK);
-                }
-	else{
-                packet_age=(unsigned long)(current_time-packet_time);
-                if(max_packet_age>0 && (packet_age>max_packet_age)){
-                        syslog(LOG_ERR,"Dropping packet with stale timestamp - packet was %lu seconds old.",packet_age);
-                        /*return;*/
-			close(sock);
-			if(mode==SINGLE_PROCESS_DAEMON)
-				return;
-			else
-				do_exit(STATE_OK);
-                        }
-                }
+        }
 
         /**** GET THE SERVICE CHECK INFORMATION ****/
 
         /* plugin return code */
         return_code=ntohs(receive_packet.return_code);
 
-        /* host name */
-        strncpy(host_name,receive_packet.host_name,sizeof(host_name)-1);
-        host_name[sizeof(host_name)-1]='\0';
-        
         /* service description */
         strncpy(svc_description,receive_packet.svc_description,sizeof(svc_description)-1);
         svc_description[sizeof(svc_description)-1]='\0';
