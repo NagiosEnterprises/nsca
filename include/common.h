@@ -24,8 +24,8 @@
 #include "config.h"
 
 
-#define PROGRAM_VERSION "2.9"
-#define MODIFICATION_DATE "10-31-2011"
+#define PROGRAM_VERSION "2.9.1"
+#define MODIFICATION_DATE "12-29-2011"
 
 
 #define OK		0
@@ -51,7 +51,7 @@
 
 #define MAX_PASSWORD_LENGTH     512
 
-#define BLOCK_DELIMITER  "\x17"
+#define BLOCK_DELIMITER  0x17
 
 
 /********************* ENCRYPTION TYPES ****************/

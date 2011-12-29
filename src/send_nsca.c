@@ -27,7 +27,6 @@ char server_name[MAX_HOST_ADDRESS_LENGTH];
 char password[MAX_INPUT_BUFFER]="";
 char config_file[MAX_INPUT_BUFFER]="send_nsca.cfg";
 char delimiter[2]="\t";
-char block_delimiter[2]=BLOCK_DELIMITER;
 
 char received_iv[TRANSMITTED_IV_SIZE];
 
@@ -191,19 +190,18 @@ int main(int argc, char **argv){
 	/* read all data from STDIN until there isn't anymore */
 
 	while(!feof(stdin)){
-		int c = getc(stdin);
-		if (c == -1){
-			break;
-			}
+		int c = 0;
 		int pos = 0;
-		while (c != 23){
-			if (c == -1){	// in case we don't terminate properly
+		while (c != 23 && c != BLOCK_DELIMITER) {
+			c = getc(stdin);
+			if (c == -1){	// in case we don't terminate properly 
 					// or are in single-input mode.
 				break;
 				}
-			input_buffer[pos] = c;
-			c = getc(stdin);
-			pos++;
+			if (pos < MAX_INPUT_BUFFER){
+				input_buffer[pos] = c;
+				pos++;
+				}
 			}
 		input_buffer[pos] = 0;
 		strip(input_buffer);

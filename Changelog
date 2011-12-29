@@ -2,6 +2,10 @@
 NSCA Changelog
 **************
 
+2.9.1 12/29/2011
+----------------
+- Bugfix for bus error with extremely large plugin output
+
 2.9 - 11/04/2011
 ----------------
 - Add config directive to submit directly to checkresults directory (Mike Lindsey)
