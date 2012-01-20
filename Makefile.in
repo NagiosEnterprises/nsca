@@ -35,13 +35,22 @@ install:
 	@echo "client and server binaries."
 	@echo ""
 
+solaris-package:
+	@if [ `uname -s` != "SunOS" ] ; then \
+		echo "It is recommended you be running on Solaris to build a Solaris package"; \
+	else \
+		cd package/solaris; $(MAKE) build ; $(MAKE) pkg ; cd ../..; \
+	fi
+
 clean:
 	cd $(SRC_BASE); $(MAKE) $@ ; cd ..
+	cd package/solaris; $(MAKE) $@ ; cd ../..
 	rm -f core
 	rm -f *~ */*~
 
 distclean: clean
 	cd $(SRC_BASE); $(MAKE) $@ ; cd ..
+	cd package/solaris; $(MAKE) $@ ; cd ../..
 	rm -f conf.libmcrypttest config.log config.status config.cache init-script Makefile subst $(SRC_INCLUDE)config.h
 	rm -f sample-config/nsca.cfg sample-config/send_nsca.cfg sample-config/nsca.xinetd
 

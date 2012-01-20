@@ -4,9 +4,10 @@
 # Last Modified: 10-23-2003
 ###############################
 
+srcdir=@srcdir@
 
 # Source code directories
-SRC_INCLUDE=../include
+SRC_INCLUDE=@srcdir@/../include
 
 CC=@CC@
 CFLAGS=@CFLAGS@ @DEFS@
@@ -19,11 +20,11 @@ CP=@CP@
 
 all: nsca send_nsca
 
-nsca: nsca.c netutils.c utils.c $(SRC_INCLUDE)/netutils.h $(SRC_INCLUDE)/utils.h $(SRC_INCLUDE)/common.h $(SRC_INCLUDE)/config.h
-	$(CC) $(CFLAGS) -o $@ nsca.c netutils.c utils.c $(LDFLAGS) $(SOCKETLIBS) $(LIBWRAPLIBS)
+nsca: $(srcdir)/nsca.c $(srcdir)/netutils.c $(srcdir)/utils.c $(SRC_INCLUDE)/netutils.h $(SRC_INCLUDE)/utils.h $(SRC_INCLUDE)/common.h $(SRC_INCLUDE)/config.h
+	$(CC) $(CFLAGS) -o $@ $(srcdir)/nsca.c $(srcdir)/netutils.c $(srcdir)/utils.c $(LDFLAGS) $(SOCKETLIBS) $(LIBWRAPLIBS)
 
-send_nsca: send_nsca.c netutils.c utils.c $(SRC_INCLUDE)/netutils.h $(SRC_INCLUDE)/utils.h $(SRC_INCLUDE)/common.h $(SRC_INCLUDE)/config.h
-	$(CC) $(CFLAGS) -o $@ send_nsca.c netutils.c utils.c $(LDFLAGS) $(SOCKETLIBS)
+send_nsca: $(srcdir)/send_nsca.c $(srcdir)/netutils.c $(srcdir)/utils.c $(SRC_INCLUDE)/netutils.h $(SRC_INCLUDE)/utils.h $(SRC_INCLUDE)/common.h $(SRC_INCLUDE)/config.h
+	$(CC) $(CFLAGS) -o $@ $(srcdir)/send_nsca.c $(srcdir)/netutils.c $(srcdir)/utils.c $(LDFLAGS) $(SOCKETLIBS)
 
 clean:
 	rm -f core nsca send_nsca

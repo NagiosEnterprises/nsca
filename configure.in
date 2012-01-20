@@ -4,14 +4,27 @@ dnl Disable caching
 define([AC_CACHE_LOAD],)
 define([AC_CACHE_SAVE],)
 
-AC_INIT(src/nsca.c)
+AC_INIT([nsca],[2.9],[nagios-users@lists.sourceforge.net],[nsca],[http://www.nagios.org])
+AC_CONFIG_SRCDIR([src/nsca.c])
 AC_CONFIG_HEADER(include/config.h)
+AC_CONFIG_FILES([Makefile
+	subst
+	src/Makefile
+	package/solaris/Makefile
+	init-script
+	sample-config/nsca.cfg
+	sample-config/send_nsca.cfg
+	sample-config/nsca.xinetd])
 AC_PREFIX_DEFAULT(/usr/local/nagios)
 
 PKG_NAME=nsca
 PKG_VERSION="2.9"
 PKG_HOME_URL="http://www.nagios.org/"
 PKG_REL_DATE="10-31-2011"
+AC_SUBST(PKG_NAME)
+AC_SUBST(PKG_VERSION)
+AC_SUBST(PKG_HOME_URL)
+AC_SUBST(PKG_REL_DATE)
 
 dnl Figure out how to invoke "install" and what install options to use.
 AC_PROG_INSTALL
@@ -50,16 +63,16 @@ AC_CHECK_TYPE(uint32_t,unsigned int)
 AC_CHECK_TYPE(u_int32_t,unsigned int)
 if test "$ac_cv_type_u_int32_t" = no ; then
 	if test "$ac_cv_type_u_int32_t" = yes ; then
-		AC_DEFINE(U_INT32_T_IS_UINT32_T)
+		AC_DEFINE(U_INT32_T_IS_UINT32_T,[1],[u_int32_t is uint32_t])
 	else
 		if test "$ac_cv_sizeof_int" = 4 ; then
-			AC_DEFINE(U_INT32_T_IS_UINT)
+			AC_DEFINE(U_INT32_T_IS_UINT,[1],[u_int32_t is uint])
 		else
 			if test "$ac_cv_sizeof_long" = 4 ; then
-				AC_DEFINE(U_INT32_T_IS_ULONG)
+				AC_DEFINE(U_INT32_T_IS_ULONG,[1],[u_int32_t is ulong])
 			else
 				if test "$ac_cv_sizeof_short" = 4 ; then
-					AC_DEFINE(U_INT32_T_IS_USHORT)
+					AC_DEFINE(U_INT32_T_IS_USHORT,[1],[u_int32_t is ushort])
 				fi
 			fi
 		fi
@@ -70,13 +83,13 @@ dnl Define int32_t if we don't have it already
 AC_CHECK_TYPE(int32_t,int)
 if test "$ac_cv_type_int32_t" = no ; then
 	if test "$ac_cv_sizeof_int" = 4 ; then
-		AC_DEFINE(INT32_T_IS_UINT)
+		AC_DEFINE(INT32_T_IS_UINT,[1],[int32_t is uint])
 	else
 		if test "$ac_cv_sizeof_long" = 4 ; then
-			AC_DEFINE(INT32_T_IS_ULONG)
+			AC_DEFINE(INT32_T_IS_ULONG,[1],[int32_t is ulong])
 		else
 			if test "$ac_cv_sizeof_short" = 4 ; then
-				AC_DEFINE(INT32_T_IS_USHORT)
+				AC_DEFINE(INT32_T_IS_USHORT,[1],[int32_t is ushort])
 			fi
 		fi
 	fi
@@ -88,7 +101,7 @@ AC_CHECK_LIB(socket,socket,SOCKETLIBS="$SOCKETLIBS -lsocket")
 AC_SUBST(SOCKETLIBS)
 AC_CHECK_LIB(wrap,main,[
 	LIBWRAPLIBS="$LIBWRAPLIBS -lwrap"
-	AC_DEFINE(HAVE_LIBWRAP)
+	AC_DEFINE(HAVE_LIBWRAP,[1],[Have the TCP wrappers library])
 	])
 AC_SUBST(LIBWRAPLIBS)
 AC_CHECK_FUNCS(strdup strstr strtoul)
@@ -148,8 +161,8 @@ AC_TRY_COMPILE([#include <stdlib.h>
 #include <sys/socket.h>
 ],
 [int a = send(1, (const void *)0, (size_t *) 0, (int *) 0);],
-[AC_DEFINE(SOCKET_SIZE_TYPE, size_t) AC_MSG_RESULT(size_t)],
-[AC_DEFINE(SOCKET_SIZE_TYPE, int) AC_MSG_RESULT(int)])
+[AC_DEFINE(SOCKET_SIZE_TYPE, size_t, [Socket Size Type]) AC_MSG_RESULT(size_t)],
+[AC_DEFINE(SOCKET_SIZE_TYPE, int, [Socket Size Type]) AC_MSG_RESULT(int)])
 
 dnl Optional mcrypt library and include paths
 AC_ARG_WITH(mcrypt-lib,--with-mcrypt-lib=DIR sets location of the mcrypt client library,[
@@ -210,7 +223,7 @@ fi
 
 AC_ARG_WITH(log_facility,--with-log-facility=<facility> sets NSCA syslog facility,log_facility=$withval,log_facility=daemon)
 AC_SUBST(log_facility)
-AC_DEFINE_UNQUOTED(NSCA_LOG_FACILITY,["$log_facility"])
+AC_DEFINE_UNQUOTED(NSCA_LOG_FACILITY,["$log_facility"],[NSCA syslog facility])
 
 AC_ARG_WITH(nsca_user,--with-nsca-user=<user> sets user name to run NSCA,nsca_user=$withval,nsca_user=nagios)
 AC_ARG_WITH(nsca_grp,--with-nsca-grp=<grp> sets group name to run NSCA,nsca_grp=$withval,nsca_grp=nagios)
@@ -218,10 +231,37 @@ AC_ARG_WITH(nsca_port,--with-nsca-port=<port> sets port number for NSCA to liste
 AC_SUBST(nsca_user)
 AC_SUBST(nsca_grp)
 AC_SUBST(nsca_port)
-AC_DEFINE_UNQUOTED(DEFAULT_SERVER_PORT,$nsca_port)
+AC_DEFINE_UNQUOTED(DEFAULT_SERVER_PORT,$nsca_port,[Default port for NSCA daemon])
+
+# Determine target OS, version and architecture for package build macros
+if test "x$target_ver" = "x" ; then
+	TARGET_VER=`uname -r`
+else
+	TARGET_VER=$target_ver
+fi
+AC_SUBST(TARGET_VER)
+if test "x$target_os" = "x" ; then
+	TARGET_OS=`uname -s`
+else
+	TARGET_OS=$target_os
+fi
+AC_SUBST(TARGET_OS)
+if test "x$target_cpu" = "x" ; then
+	TARGET_ARCH=`uname -p`
+else
+	TARGET_ARCH=$target_cpu
+fi
+AC_SUBST(TARGET_ARCH)
+TARGET_PLATFORM=""
+if test "x$TARGET_OS" = "xSunOS" ; then
+	if test "x$TARGET_VER" = "x5.10" ; then
+		TARGET_PLATFORM="sol10"
+	fi
+fi
+AC_SUBST(TARGET_PLATFORM)
 
 AC_PATH_PROG(PERL,perl)
-AC_OUTPUT(Makefile subst src/Makefile)
+AC_OUTPUT()
 
 perl subst init-script
 perl subst sample-config/nsca.xinetd
