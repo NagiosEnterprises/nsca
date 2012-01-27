@@ -2,9 +2,10 @@
 NSCA Changelog
 **************
 
-?.? - ??/??/????
-----------------
+2.9.1 - 01/27/2012
+------------------
 - Applied patch to allow packets arriving with a future time stamp (Daniel Wittenberg)
+- Updated server (nsca) to allow packets with older, smaller packet size (Eric Stanley)
 
 
 2.9 - 11/04/2011

@@ -10,10 +10,10 @@ else
 fi
 
 # Current version number
-CURRENTVERSION=2.9
+CURRENTVERSION=2.9.1
 
 # Last date
-LASTDATE=10-31-2011
+LASTDATE=01-27-2012
 
 if [ "x$1" = "x" ]
 then
@@ -39,6 +39,7 @@ fi
 # Update version number and release date in common code
 perl -i -p -e "s/VERSION \".*\"/VERSION \"$1\"/;" include/common.h
 perl -i -p -e "s/MODIFICATION_DATE \".*\"/MODIFICATION_DATE \"$SHORTDATE\"/;" include/common.h
+perl -i -p -e "s/Last Modified: [0-9].*/Last Modified: $SHORTDATE/;" include/common.h
 
 # Update version number and release date in main code
 perl -i -p -e "s/Last Modified: [0-9].*/Last Modified: $SHORTDATE/;" src/nsca.c
@@ -47,6 +48,7 @@ perl -i -p -e "s/Last Modified: [0-9].*/Last Modified: $SHORTDATE/;" src/send_ns
 # Update version number and release date in configure script and configure.in
 perl -i -p -e "s/PKG_VERSION=.*/PKG_VERSION=\"$1\"/;" configure
 perl -i -p -e "s/PKG_REL_DATE=.*\"/PKG_REL_DATE=\"$SHORTDATE\"/;" configure
+perl -i -p -e "if( /^AC_INIT/) { s/$CURRENTVERSION/$1/; }" configure.in
 perl -i -p -e "s/PKG_VERSION=.*/PKG_VERSION=\"$1\"/;" configure.in
 perl -i -p -e "s/PKG_REL_DATE=.*\"/PKG_REL_DATE=\"$SHORTDATE\"/;" configure.in
 

@@ -1307,9 +1307,9 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 PKG_NAME=nsca
-PKG_VERSION="2.9"
+PKG_VERSION="2.9.1"
 PKG_HOME_URL="http://www.nagios.org/"
-PKG_REL_DATE="10-31-2011"
+PKG_REL_DATE="01-27-2012"
 
 
 
