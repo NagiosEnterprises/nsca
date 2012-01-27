@@ -45,9 +45,19 @@
 
 #define MAX_HOST_ADDRESS_LENGTH	256	/* max size of a host address */
 
+/**************************************************************************************/
+/* WARNING!                                                                           */
+/*                                                                                    */
+/* Changing the lengths below may cause packet failures between clients and servers   */
+/* of different versions.                                                             */
+/**************************************************************************************/
+
 #define MAX_HOSTNAME_LENGTH	64
 #define MAX_DESCRIPTION_LENGTH	128
 #define MAX_PLUGINOUTPUT_LENGTH	4096
+
+#define OLD_PLUGINOUTPUT_LENGTH	512
+#define OLD_PACKET_LENGTH (( sizeof( data_packet) - ( MAX_PLUGINOUTPUT_LENGTH - OLD_PLUGINOUTPUT_LENGTH)))
 
 #define MAX_PASSWORD_LENGTH     512
 

@@ -1081,6 +1081,8 @@ static void handle_connection_read(int sock, void *data){
         char host_name[MAX_HOSTNAME_LENGTH];
         char svc_description[MAX_DESCRIPTION_LENGTH];
         char plugin_output[MAX_PLUGINOUTPUT_LENGTH];
+        int packet_length=sizeof(receive_packet);
+        int plugin_length=MAX_PLUGINOUTPUT_LENGTH;
 
         CI=data;
 
@@ -1092,19 +1094,25 @@ static void handle_connection_read(int sock, void *data){
 
         /* recv() error or client disconnect */
         if(rc<=0){
-                if(debug==TRUE)
-                        syslog(LOG_ERR,"End of connection...");
-                encrypt_cleanup(decryption_method, CI);
-                close(sock);
-                if(mode==SINGLE_PROCESS_DAEMON)
-                        return;
-                else
-                        do_exit(STATE_OK);
+                if( OLD_PACKET_LENGTH == bytes_to_recv){
+                        packet_length=OLD_PACKET_LENGTH;
+                        plugin_length=OLD_PLUGINOUTPUT_LENGTH;
+                        }
+				else {
+                        if(debug==TRUE)
+                                syslog(LOG_ERR,"End of connection...");
+                        encrypt_cleanup(decryption_method, CI);
+                        close(sock);
+                        if(mode==SINGLE_PROCESS_DAEMON)
+                                return;
+                        else
+                                do_exit(STATE_OK);
+                        }
                 }
 
         /* we couldn't read the correct amount of data, so bail out */
-        if(bytes_to_recv!=sizeof(receive_packet)){
-                syslog(LOG_ERR,"Data sent from client was too short (%d < %d), aborting...",bytes_to_recv,sizeof(receive_packet));
+        if(bytes_to_recv!=packet_length){
+                syslog(LOG_ERR,"Data sent from client was too short (%d < %d), aborting...",bytes_to_recv,packet_length);
                 encrypt_cleanup(decryption_method, CI);
                 close(sock);
 		return;
@@ -1119,7 +1127,7 @@ static void handle_connection_read(int sock, void *data){
                 register_read_handler(sock, handle_connection_read, (void *)CI);
 
         /* decrypt the packet */
-        decrypt_buffer((char *)&receive_packet,sizeof(receive_packet),password,decryption_method,CI);
+        decrypt_buffer((char *)&receive_packet,packet_length,password,decryption_method,CI);
 
         /* make sure this is the right type of packet */
         if(ntohs(receive_packet.packet_version)!=NSCA_PACKET_VERSION_3){
@@ -1135,7 +1143,7 @@ static void handle_connection_read(int sock, void *data){
         /* check the crc 32 value */
         packet_crc32=ntohl(receive_packet.crc32_value);
         receive_packet.crc32_value=0L;
-        calculated_crc32=calculate_crc32((char *)&receive_packet,sizeof(receive_packet));
+        calculated_crc32=calculate_crc32((char *)&receive_packet,packet_length);
         if(packet_crc32!=calculated_crc32){
                 syslog(LOG_ERR,"Dropping packet with invalid CRC32 - possibly due to client using wrong password or crypto algorithm?");
                 /*return;*/
@@ -1174,8 +1182,8 @@ static void handle_connection_read(int sock, void *data){
         svc_description[sizeof(svc_description)-1]='\0';
         
         /* plugin output */
-        strncpy(plugin_output,receive_packet.plugin_output,sizeof(plugin_output)-1);
-        plugin_output[sizeof(plugin_output)-1]='\0';
+        strncpy(plugin_output,receive_packet.plugin_output,plugin_length-1);
+        plugin_output[plugin_length-1]='\0';
 
         /* log info to syslog facility */
         if(debug==TRUE){
