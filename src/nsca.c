@@ -636,8 +636,10 @@ static void register_poll(short events, int fd){
                 pfds=realloc(pfds, sizeof(struct pollfd) * maxpfds);
                 }
 
+        /* reusing the struct pollfd, set all fields. */
         pfds[npfds].fd=fd;
         pfds[npfds].events=events;
+        pfds[npfds].revents=0;
         npfds++;
         }
 
@@ -753,6 +755,9 @@ static void handle_events(void){
 		return;
 
         poll(pfds,npfds,-1);
+
+        /* Global npfds is being increased by accept during the loop, beware. */
+        /* Handlers are closing fds and expecting POLLNVAL cleanup here. */
         for(i=0;i<npfds;i++){
                 if((pfds[i].events&POLLIN) && (pfds[i].revents&(POLLIN|POLLERR|POLLHUP|POLLNVAL))){
                         pfds[i].events&=~POLLIN;
@@ -761,7 +766,8 @@ static void handle_events(void){
                         data=rhand[hand].data;
                         rhand[hand].handler=NULL;
                         rhand[hand].data=NULL;
-                        handler(pfds[i].fd,data);
+                        if ((pfds[i].revents&POLLNVAL)==0)
+                                handler(pfds[i].fd,data);
                         }
                 if((pfds[i].events&POLLOUT) && (pfds[i].revents&(POLLOUT|POLLERR|POLLHUP|POLLNVAL))){
                         pfds[i].events&=~POLLOUT;
@@ -770,7 +776,8 @@ static void handle_events(void){
                         data=whand[hand].data;
                         whand[hand].handler=NULL;
                         whand[hand].data=NULL;
-                        handler(pfds[i].fd,data);
+                        if ((pfds[i].revents&POLLNVAL)==0)
+                                handler(pfds[i].fd,data);
                         }
                 }
 
