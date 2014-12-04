@@ -93,9 +93,9 @@ NSCA Changelog
 
 1.2.0 - 02/12/2002
 ------------------
-- Compatability between older versions has been broken!
+- Compatibility between older versions has been broken!
 - Server now sends client IV and timestamp, fixing
-  encryption problems and making it more resistent
+  encryption problems and making it more resistant
   to "replay" attacks (Ralf Ertzinger)
 - Random IV is now seeded from /dev/urandom instead
   of time() if possible
