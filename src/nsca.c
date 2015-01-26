@@ -57,6 +57,8 @@ int     show_version=FALSE;
 int     sigrestart=FALSE;
 int     sigshutdown=FALSE;
 
+int     foreground=FALSE;
+
 int	using_alternate_dump_file=FALSE;
 static FILE *command_file_fp=NULL;
 
@@ -112,14 +114,15 @@ int main(int argc, char **argv){
 	        }
 
 	if(result!=OK || show_help==TRUE){
-                printf("Usage: %s -c <config_file> [mode]\n",argv[0]);
+                printf("Usage: %s [-f] -c <config_file> [mode]\n",argv[0]);
                 printf("\n");
                 printf("Options:\n");
-		printf(" <config_file> = Name of config file to use\n");
-		printf(" [mode]        = Determines how NSCA should run. Valid modes:\n");
-                printf("   --inetd     = Run as a service under inetd or xinetd\n");
-                printf("   --daemon    = Run as a standalone multi-process daemon\n");
-                printf("   --single    = Run as a standalone single-process daemon (default)\n");
+		printf(" -f --foreground = Do not fork, run in foreground\n");
+		printf(" <config_file>   = Name of config file to use\n");
+		printf(" [mode]          = Determines how NSCA should run. Valid modes:\n");
+                printf("     --inetd     = Run as a service under inetd or xinetd\n");
+                printf("     --daemon    = Run as a standalone multi-process daemon\n");
+                printf("     --single    = Run as a standalone single-process daemon (default)\n");
                 printf("\n");
                 printf("Notes:\n");
                 printf("This program is designed to accept passive check results from\n");
@@ -198,7 +201,7 @@ int main(int argc, char **argv){
 		       V     */
 
                 /* daemonize and start listening for requests... */
-                if(fork()==0){
+                if(foreground || fork()==0){
 
                         /* we're a daemon - set up a new process group */
                         setsid();
@@ -1366,6 +1369,10 @@ int process_arguments(int argc, char **argv){
 		/* show usage */
 		if(!strcmp(argv[x-1],"-h") || !strcmp(argv[x-1],"--help"))
 			show_help=TRUE;
+
+		/* run in foreground */
+		else if(!strcmp(argv[x-1],"-f") || !strcmp(argv[x-1],"--foreground"))
+			foreground=TRUE;
 
 		/* show license */
 		else if(!strcmp(argv[x-1],"-l") || !strcmp(argv[x-1],"--license"))
