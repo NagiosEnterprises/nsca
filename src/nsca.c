@@ -477,7 +477,7 @@ static int read_config_file(char *filename){
                             int checkresult_test_fd=-1;
                             char *checkresult_test=NULL;
                             asprintf(&checkresult_test,"%s/nsca.test.%i",check_result_path,getpid());
-                            checkresult_test_fd=open(checkresult_test,O_WRONLY|O_CREAT);
+                            checkresult_test_fd=open(checkresult_test,O_WRONLY|O_CREAT, S_IRUSR|S_IWUSR);
                             if (checkresult_test_fd>0){
                                     unlink(checkresult_test);
                                     }
