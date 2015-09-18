@@ -2,6 +2,12 @@
 NSCA Changelog
 **************
 
+2.9.x - xx/xx/xxxx
+------------------
+- Renamed configure.in to configure.ac and added check for sigaction (John Frickson)
+- Replaced all instances of signal() with sigaction() + blocking (John Frickson)
+
+
 2.9.1 - 01/27/2012
 ------------------
 - Applied patch to allow packets arriving with a future time stamp (Daniel Wittenberg)

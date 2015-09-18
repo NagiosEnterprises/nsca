@@ -146,7 +146,7 @@ rm -rf $RPM_BUILD_ROOT
 %doc Changelog LEGAL README SECURITY
 
 %changelog
-* Wed Jan 28 2004 Falk Höppner <fh at honix de>
+* Wed Jan 28 2004 Falk HÃ¶ppner <fh at honix de>
 - Create SPEC from nrpe.spec  
 - Tested on ia32/ia64 with SLES8/RHEL3
 

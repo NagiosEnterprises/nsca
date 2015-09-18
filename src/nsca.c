@@ -82,6 +82,9 @@ int main(int argc, char **argv){
         int result;
         uid_t uid=-1;
         gid_t gid=-1;
+#ifdef HAVE_SIGACTION
+		struct sigaction sig_action;
+#endif
 
 
 	/* process command-line arguments */
@@ -204,9 +207,19 @@ int main(int argc, char **argv){
                         setsid();
 
 			/* handle signals */
+#ifdef HAVE_SIGACTION
+			sig_action.sa_sigaction = NULL;
+			sig_action.sa_handler = sighandler;
+			sigfillset(&sig_action.sa_mask);
+			sig_action.sa_flags = SA_NODEFER|SA_RESTART;
+			sigaction(SIGQUIT, &sig_action, NULL);
+			sigaction(SIGTERM, &sig_action, NULL);
+			sigaction(SIGHUP, &sig_action, NULL);
+#else /* HAVE_SIGACTION */
 			signal(SIGQUIT,sighandler);
 			signal(SIGTERM,sighandler);
 			signal(SIGHUP,sighandler);
+#endif /* HAVE_SIGACTION */
 
 			/* close standard file descriptors */
                         close(0);

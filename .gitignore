@@ -1,0 +1,16 @@
+Makefile
+config.log
+config.status
+include/config.h
+init-script
+subst
+package/solaris/Makefile
+sample-config/nsca.cfg
+sample-config/nsca.xinetd
+sample-config/send_nsca.cfg
+src/Makefile
+src/nsca
+src/send_nsca
+nbproject/
+autom4te.cache/
+

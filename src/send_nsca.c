@@ -72,6 +72,9 @@ int main(int argc, char **argv){
 	int16_t return_code;
 	u_int32_t calculated_crc32;
 	char *inputptr, *ptr1, *ptr2, *ptr3, *ptr4;
+#ifdef HAVE_SIGACTION
+	struct sigaction sig_action;
+#endif
 
 
 	/* process command-line arguments */
@@ -142,7 +145,15 @@ int main(int argc, char **argv){
 	generate_crc32_table();
 
 	/* initialize alarm signal handling */
+#ifdef HAVE_SIGACTION
+	sig_action.sa_sigaction = NULL;
+	sig_action.sa_handler = alarm_handler;
+	sigfillset(&sig_action.sa_mask);
+	sig_action.sa_flags = SA_NODEFER|SA_RESTART;
+	sigaction(SIGALRM, &sig_action, NULL);
+#else
 	signal(SIGALRM,alarm_handler);
+#endif /* HAVE_SIGACTION */
 
 	/* set socket timeout */
 	alarm(socket_timeout);
@@ -318,7 +329,7 @@ static void do_exit(int return_code){
 	alarm(0);
 
 	/* encryption/decryption routine cleanup */
-	encrypt_cleanup(encryption_method,CI);
+	/* encrypt_cleanup(encryption_method,CI); */
 
 #ifdef DEBUG
 	printf("Cleaned up encryption routines\n");
@@ -467,8 +478,9 @@ int process_arguments(int argc, char **argv){
 
 /* handle timeouts */
 void alarm_handler(int sig){
-
-	printf("Error: Timeout after %d seconds\n",socket_timeout);
+	const char msg[] = "Error: Timeout after %d seconds\n";
+	/* printf("Error: Timeout after %d seconds\n",socket_timeout); */
+	write(STDOUT_FILENO, msg, sizeof(msg) - 1);
 
 	do_exit(STATE_CRITICAL);
         }
