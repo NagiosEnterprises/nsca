@@ -28,8 +28,8 @@
  *
  ********************************************************************************/
 
-#ifndef _UTILS_H
-#define _UTILS_H
+#ifndef NSCA_UTILS_H_INCLUDED
+#define NSCA_UTILS_H_INCLUDED
 
 #include "config.h"
 
