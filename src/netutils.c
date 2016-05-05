@@ -69,7 +69,7 @@ int my_connect(char *host_name,int port,int *sd,char *proto){
 	sprintf(server_port,"%d",port);
 	result = getaddrinfo(host_name,server_port,&hints,&aip);
 	if (result < 0) {
-		printf("Host lookup failed\n");
+		printf("Host name lookup failed: '%s'\n",host_name);
 		return STATE_UNKNOWN;
 		}
 
