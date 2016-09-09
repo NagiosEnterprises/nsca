@@ -1327,7 +1327,8 @@ static int open_command_file(void){
 	        }
 
         /* open the command file for writing or appending */
-        command_file_fp=fopen(command_file,(append_to_file==TRUE)?"a":"w");
+        int command_file_fd = open(command_file,O_RDWR|O_NONBLOCK);
+        command_file_fp=fdopen(command_file_fd,(append_to_file==TRUE)?"a":"w");
         if(command_file_fp==NULL){
                 if(debug==TRUE)
                         syslog(LOG_ERR,"Could not open command file '%s' for %s",command_file,(append_to_file==TRUE)?"appending":"writing");
