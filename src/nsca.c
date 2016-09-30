@@ -651,6 +651,7 @@ static void register_poll(short events, int fd){
 
         pfds[npfds].fd=fd;
         pfds[npfds].events=events;
+        pfds[npfds].revents=0;
         npfds++;
         }
 
@@ -774,7 +775,8 @@ static void handle_events(void){
                         data=rhand[hand].data;
                         rhand[hand].handler=NULL;
                         rhand[hand].data=NULL;
-                        handler(pfds[i].fd,data);
+						if((pfds[i].revents&POLLNVAL)==0)
+	                        handler(pfds[i].fd,data);
                         }
                 if((pfds[i].events&POLLOUT) && (pfds[i].revents&(POLLOUT|POLLERR|POLLHUP|POLLNVAL))){
                         pfds[i].events&=~POLLOUT;
@@ -783,7 +785,8 @@ static void handle_events(void){
                         data=whand[hand].data;
                         whand[hand].handler=NULL;
                         whand[hand].data=NULL;
-                        handler(pfds[i].fd,data);
+						if((pfds[i].revents&POLLNVAL)==0)
+	                        handler(pfds[i].fd,data);
                         }
                 }
 
