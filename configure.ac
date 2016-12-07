@@ -104,7 +104,7 @@ AC_CHECK_LIB(wrap,main,[
 	AC_DEFINE(HAVE_LIBWRAP,[1],[Have the TCP wrappers library])
 	])
 AC_SUBST(LIBWRAPLIBS)
-AC_CHECK_FUNCS(strdup strstr strtoul)
+AC_CHECK_FUNCS(strdup strstr strtoul sigaction)
 
 dnl Define sig_atomic_t to int if it's not available.
 AC_CHECK_TYPE([sig_atomic_t],[],[

@@ -82,6 +82,9 @@ int main(int argc, char **argv){
         int result;
         uid_t uid=-1;
         gid_t gid=-1;
+#ifdef HAVE_SIGACTION
+		struct sigaction sig_action;
+#endif
 
 
 	/* process command-line arguments */
@@ -204,9 +207,19 @@ int main(int argc, char **argv){
                         setsid();
 
 			/* handle signals */
+#ifdef HAVE_SIGACTION
+			sig_action.sa_sigaction = NULL;
+			sig_action.sa_handler = sighandler;
+			sigfillset(&sig_action.sa_mask);
+			sig_action.sa_flags = SA_NODEFER|SA_RESTART;
+			sigaction(SIGQUIT, &sig_action, NULL);
+			sigaction(SIGTERM, &sig_action, NULL);
+			sigaction(SIGHUP, &sig_action, NULL);
+#else /* HAVE_SIGACTION */
 			signal(SIGQUIT,sighandler);
 			signal(SIGTERM,sighandler);
 			signal(SIGHUP,sighandler);
+#endif /* HAVE_SIGACTION */
 
 			/* close standard file descriptors */
                         close(0);
@@ -477,7 +490,7 @@ static int read_config_file(char *filename){
                             int checkresult_test_fd=-1;
                             char *checkresult_test=NULL;
                             asprintf(&checkresult_test,"%s/nsca.test.%i",check_result_path,getpid());
-                            checkresult_test_fd=open(checkresult_test,O_WRONLY|O_CREAT);
+                            checkresult_test_fd=open(checkresult_test,O_WRONLY|O_CREAT,S_IWUSR);
                             if (checkresult_test_fd>0){
                                     unlink(checkresult_test);
                                     }
@@ -638,6 +651,7 @@ static void register_poll(short events, int fd){
 
         pfds[npfds].fd=fd;
         pfds[npfds].events=events;
+        pfds[npfds].revents=0;
         npfds++;
         }
 
@@ -761,7 +775,8 @@ static void handle_events(void){
                         data=rhand[hand].data;
                         rhand[hand].handler=NULL;
                         rhand[hand].data=NULL;
-                        handler(pfds[i].fd,data);
+						if((pfds[i].revents&POLLNVAL)==0)
+	                        handler(pfds[i].fd,data);
                         }
                 if((pfds[i].events&POLLOUT) && (pfds[i].revents&(POLLOUT|POLLERR|POLLHUP|POLLNVAL))){
                         pfds[i].events&=~POLLOUT;
@@ -770,7 +785,8 @@ static void handle_events(void){
                         data=whand[hand].data;
                         whand[hand].handler=NULL;
                         whand[hand].data=NULL;
-                        handler(pfds[i].fd,data);
+						if((pfds[i].revents&POLLNVAL)==0)
+	                        handler(pfds[i].fd,data);
                         }
                 }
 
@@ -1301,42 +1317,45 @@ static int write_check_result(char *host_name, char *svc_description, int return
 
 
 /* opens the command file for writing */
-static int open_command_file(void){
-	struct stat statbuf;
+static int open_command_file(void)
+{
+	int	fd;
 
-        /* file is already open */
-        if(command_file_fp!=NULL && using_alternate_dump_file==FALSE)
-                return OK;
+	/* file is already open */
+	if(command_file_fp!=NULL && using_alternate_dump_file==FALSE)
+		return OK;
+
+	do
+		fd = open(command_file,O_WRONLY|((append_to_file==TRUE)?O_APPEND:0));
+	while(fd < 0 && errno == EINTR);
 
 	/* command file doesn't exist - monitoring app probably isn't running... */
-	if(stat(command_file,&statbuf)){
-		
-		if(debug==TRUE)
-			syslog(LOG_ERR,"Command file '%s' does not exist, attempting to use alternate dump file '%s' for output",command_file,alternate_dump_file);
+	if (fd < 0 && errno == ENOENT) {
+
+		if (debug == TRUE)
+			syslog(LOG_ERR, "Command file '%s' does not exist, attempting to use alternate dump file '%s' for output", command_file, alternate_dump_file);
 
 		/* try and write checks to alternate dump file */
-		command_file_fp=fopen(alternate_dump_file,"a");
-		if(command_file_fp==NULL){
-			if(debug==TRUE)
-				syslog(LOG_ERR,"Could not open alternate dump file '%s' for appending",alternate_dump_file);
+		command_file_fp = fopen(alternate_dump_file, "a");
+		if (command_file_fp == NULL) {
+			if(debug == TRUE)
+				syslog(LOG_ERR, "Could not open alternate dump file '%s' for appending", alternate_dump_file);
 			return ERROR;
-                        }
-		using_alternate_dump_file=TRUE;
+		}
+		using_alternate_dump_file = TRUE;
 
 		return OK;
-	        }
+	}
 
-        /* open the command file for writing or appending */
-        command_file_fp=fopen(command_file,(append_to_file==TRUE)?"a":"w");
-        if(command_file_fp==NULL){
-                if(debug==TRUE)
-                        syslog(LOG_ERR,"Could not open command file '%s' for %s",command_file,(append_to_file==TRUE)?"appending":"writing");
-                return ERROR;
-                }
+	if (fd < 0 || (command_file_fp = fdopen(fd, (append_to_file == TRUE) ? "a" : "w")) == NULL) {
+		if (debug == TRUE)
+			syslog(LOG_ERR, "Could not open command file '%s' for %s", command_file, (append_to_file == TRUE) ? "appending" : "writing");
+		return ERROR;
+	}
 
-	using_alternate_dump_file=FALSE;
-        return OK;
-        }
+	using_alternate_dump_file = FALSE;
+	return OK;
+}
 
 
 
