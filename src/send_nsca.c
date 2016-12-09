@@ -83,7 +83,7 @@ int main(int argc, char **argv){
 	if(result!=OK || show_help==TRUE || show_license==TRUE || show_version==TRUE){
 
 		if(result!=OK)
-			printf("Incorrect command line arguments supplied\n");
+			fprintf(stderr, "Incorrect command line arguments supplied\n");
 		printf("\n");
 		printf("NSCA Client %s\n",PROGRAM_VERSION);
 		printf("Copyright (c) 2000-2007 Ethan Galstad (www.nagios.org)\n");
@@ -137,7 +137,7 @@ int main(int argc, char **argv){
 
 	/* exit if there are errors... */
 	if(result==ERROR){
-		printf("Error: Config file '%s' contained errors...\n",config_file);
+		fprintf(stderr, "Error: Config file '%s' contained errors...\n",config_file);
 		do_exit(STATE_CRITICAL);
 		}
 
@@ -165,7 +165,7 @@ int main(int argc, char **argv){
 
 	/* we couldn't connect */
 	if(result!=STATE_OK){
-		printf("Error: Could not connect to host %s on port %d\n",server_name,server_port);
+		fprintf(stderr, "Error: Could not connect to host %s on port %d\n",server_name,server_port);
 		do_exit(STATE_CRITICAL);
 	        }
 
@@ -176,7 +176,7 @@ int main(int argc, char **argv){
 	/* read the initialization packet containing the IV and timestamp */
 	result=read_init_packet(sd);
 	if(result!=OK){
-		printf("Error: Could not read init packet from server\n");
+		fprintf(stderr, "Error: Could not read init packet from server\n");
 		close(sd);
 		do_exit(STATE_CRITICAL);
 	        }
@@ -187,7 +187,7 @@ int main(int argc, char **argv){
 
 	/* initialize encryption/decryption routines with the IV we received from the server */
         if(encrypt_init(password,encryption_method,received_iv,&CI)!=OK){
-		printf("Error: Failed to initialize encryption libraries for method %d\n",encryption_method);
+		fprintf(stderr, "Error: Failed to initialize encryption libraries for method %d\n",encryption_method);
 		close(sd);
 		do_exit(STATE_CRITICAL);
 	        }
@@ -291,7 +291,7 @@ int main(int argc, char **argv){
 
 		/* there was an error sending the packet */
 		if(rc==-1){
-			printf("Error: Could not send data to host\n");
+			fprintf(stderr, "Error: Could not send data to host\n");
 			close(sd);
 			do_exit(STATE_UNKNOWN);
 	                }
@@ -364,13 +364,13 @@ int read_init_packet(int sock){
 
         /* recv() error or server disconnect */
         if(rc<=0){
-                printf("Error: Server closed connection before init packet was received\n");
+                fprintf(stderr, "Error: Server closed connection before init packet was received\n");
                 return ERROR;
                 }
 
         /* we couldn't read the correct amount of data, so bail out */
         else if(bytes_to_recv!=sizeof(receive_packet)){
-                printf("Error: Init packet from server was too short (%d bytes received, %d expected)\n",bytes_to_recv,sizeof(receive_packet));
+                fprintf(stderr, "Error: Init packet from server was too short (%d bytes received, %d expected)\n",bytes_to_recv,sizeof(receive_packet));
                 return ERROR;
                 }
 
@@ -479,7 +479,7 @@ int process_arguments(int argc, char **argv){
 /* handle timeouts */
 void alarm_handler(int sig){
 	const char msg[] = "Error: Timeout after %d seconds\n";
-	/* printf("Error: Timeout after %d seconds\n",socket_timeout); */
+	/* fprintf(stderr, "Error: Timeout after %d seconds\n",socket_timeout); */
 	write(STDOUT_FILENO, msg, sizeof(msg) - 1);
 
 	do_exit(STATE_CRITICAL);
