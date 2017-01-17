@@ -25,6 +25,7 @@ time_t start_time,end_time;
 int server_port=DEFAULT_SERVER_PORT;
 char server_name[MAX_HOST_ADDRESS_LENGTH];
 char password[MAX_INPUT_BUFFER]="";
+int legacy_2_7_mode=FALSE;
 char config_file[MAX_INPUT_BUFFER]="send_nsca.cfg";
 char delimiter[2]="\t";
 char block_delimiter[2]=BLOCK_DELIMITER;
@@ -68,6 +69,8 @@ int main(int argc, char **argv){
 	char host_name[MAX_HOSTNAME_LENGTH];
 	char svc_description[MAX_DESCRIPTION_LENGTH];
 	char plugin_output[MAX_PLUGINOUTPUT_LENGTH];
+	size_t plugin_output_length=MAX_PLUGINOUTPUT_LENGTH;
+	int sizeof_send_packet = sizeof(send_packet);
 	int total_packets=0;
 	int16_t return_code;
 	u_int32_t calculated_crc32;
@@ -120,6 +123,11 @@ int main(int argc, char **argv){
 		printf("<host_name>[tab]<svc_description>[tab]<return_code>[tab]<plugin_output>[newline]\n\n");
 		printf("Host Checks:\n");
 		printf("<host_name>[tab]<return_code>[tab]<plugin_output>[newline]\n\n");
+		if(legacy_2_7_mode == FALSE){
+			printf("When submitting multiple simultaneous results, separate each set with the ETB\n");
+			printf("character (^W or 0x17)\n");
+		}
+		printf("<host_name>[tab]<return_code>[tab]<plugin_output>[newline]\n\n");
 		printf("When submitting multiple simultaneous results, separate each set with the ETB\n");
                 printf("character (^W or 0x17)\n");
 	        }
@@ -133,7 +141,12 @@ int main(int argc, char **argv){
 
 
 	/* read the config file */
-	result=read_config_file(config_file);	
+	result=read_config_file(config_file);
+	if(legacy_2_7_mode){
+		plugin_output_length=OLD_PLUGINOUTPUT_LENGTH;
+		sizeof_send_packet = sizeof(send_packet) - (MAX_PLUGINOUTPUT_LENGTH - plugin_output_length);
+		// printf("Running in compatibility mode (server < V2.9, legacy plugin output length is %d bytes)\n", plugin_output_length);
+	}
 
 	/* exit if there are errors... */
 	if(result==ERROR){
@@ -200,7 +213,6 @@ int main(int argc, char **argv){
 	/**** WE'RE CONNECTED AND READY TO SEND ****/
 
 	/* read all data from STDIN until there isn't anymore */
-
 	while(!feof(stdin)){
 		int c = getc(stdin);
 		if (c == -1){
@@ -246,26 +258,26 @@ int main(int argc, char **argv){
 			strcpy(svc_description,"");
 			return_code=atoi(ptr2);
                         ptr3=escape_newlines(ptr3);
-			strncpy(plugin_output,ptr3,sizeof(plugin_output)-1);
+			strncpy(plugin_output,ptr3,plugin_output_length-1);
 		        }
 		else{
 			strncpy(svc_description,ptr2,sizeof(svc_description)-1);
 			return_code=atoi(ptr3);
                         ptr4=escape_newlines(ptr4);
-			strncpy(plugin_output,ptr4,sizeof(plugin_output)-1);
+			strncpy(plugin_output,ptr4,plugin_output_length-1);
 		        }
 
 		svc_description[sizeof(svc_description)-1]='\x0';
-		plugin_output[sizeof(plugin_output)-1]='\x0';
+		plugin_output[plugin_output_length-1]='\x0';
 
 		/* increment count of packets we're sending */
 		total_packets++;
 
 		/* clear the packet buffer */
-		bzero(&send_packet,sizeof(send_packet));
+		bzero(&send_packet,sizeof_send_packet);
 
 		/* fill the packet with semi-random data */
-		randomize_buffer((char *)&send_packet,sizeof(send_packet));
+		randomize_buffer((char *)&send_packet,sizeof_send_packet);
 
 		/* copy the data we want to send into the packet */
 		send_packet.packet_version=(int16_t)htons(NSCA_PACKET_VERSION_3);
@@ -279,14 +291,14 @@ int main(int argc, char **argv){
 
 		/* calculate the crc 32 value of the packet */
 		send_packet.crc32_value=(u_int32_t)0L;
-		calculated_crc32=calculate_crc32((char *)&send_packet,sizeof(send_packet));
+		calculated_crc32=calculate_crc32((char *)&send_packet,sizeof_send_packet);
 		send_packet.crc32_value=(u_int32_t)htonl(calculated_crc32);
 
 		/* encrypt the packet */
-		encrypt_buffer((char *)&send_packet,sizeof(send_packet),password,encryption_method,CI);
+		encrypt_buffer((char *)&send_packet,sizeof_send_packet,password,encryption_method,CI);
 
 		/* send the packet */
-		bytes_to_send=sizeof(send_packet);
+		bytes_to_send=sizeof_send_packet;
 		rc=sendall(sd,(char *)&send_packet,&bytes_to_send);
 
 		/* there was an error sending the packet */
@@ -297,8 +309,8 @@ int main(int argc, char **argv){
 	                }
 
 		/* for some reason we didn't send all the bytes we were supposed to */
-		else if(bytes_to_send<sizeof(send_packet)){
-			printf("Warning: Sent only %d of %d bytes to host\n",rc,sizeof(send_packet));
+		else if(bytes_to_send<sizeof_send_packet){
+			printf("Warning: Sent only %d of %d bytes to host\n",rc,sizeof_send_packet);
 			close(sd);
 			return STATE_UNKNOWN;
 		        }
@@ -611,7 +623,11 @@ int read_config_file(char *filename){
 				return ERROR;
 			        }
 		        }
-
+		else if(strstr(input_buffer,"legacy_2_7_mode")){
+			if( strncmp(input_buffer, "true", 4) || strncmp(input_buffer, "yes", 3) ){
+				legacy_2_7_mode=TRUE;
+			}
+		}
 		else{
 			printf("Unknown option specified in config file '%s' - Line %d\n",filename,line);
 
