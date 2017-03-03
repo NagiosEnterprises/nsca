@@ -54,6 +54,8 @@ int     show_help=FALSE;
 int     show_license=FALSE;
 int     show_version=FALSE;
 
+int     foreground=FALSE;
+
 int     sigrestart=FALSE;
 int     sigshutdown=FALSE;
 
@@ -115,10 +117,11 @@ int main(int argc, char **argv){
 	        }
 
 	if(result!=OK || show_help==TRUE){
-                printf("Usage: %s -c <config_file> [mode]\n",argv[0]);
+                printf("Usage: %s -c <config_file> [-f] [mode]\n",argv[0]);
                 printf("\n");
                 printf("Options:\n");
 		printf(" <config_file> = Name of config file to use\n");
+		printf(" [-f]          = Run in the foreground, do not fork\n");
 		printf(" [mode]        = Determines how NSCA should run. Valid modes:\n");
                 printf("   --inetd     = Run as a service under inetd or xinetd\n");
                 printf("   --daemon    = Run as a standalone multi-process daemon\n");
@@ -201,7 +204,7 @@ int main(int argc, char **argv){
 		       V     */
 
                 /* daemonize and start listening for requests... */
-                if(fork()==0){
+                if(foreground || fork()==0){
 
                         /* we're a daemon - set up a new process group */
                         setsid();
@@ -1393,6 +1396,10 @@ int process_arguments(int argc, char **argv){
 		/* show version */
 		else if(!strcmp(argv[x-1],"-V") || !strcmp(argv[x-1],"--version"))
 			show_version=TRUE;
+
+		/* run in the foreground */
+		else if(!strcmp(argv[x-1],"-f"))
+			foreground=TRUE;
 
 		else if(!strcmp(argv[x-1],"-d") || !strcmp(argv[x-1],"--daemon"))
                         mode=MULTI_PROCESS_DAEMON;
