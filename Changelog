@@ -2,6 +2,11 @@
 NSCA Changelog
 **************
 
+x.x.x - xxxx-xx-xx
+------------------
+- Changed release date to ISO format (yyyy-mm-dd) (John Frickson)
+
+
 2.9.2 - 2016-12-07
 ------------------
 - Renamed configure.in to configure.ac and added check for sigaction (John Frickson)
@@ -9,6 +14,7 @@ NSCA Changelog
 - Race condition when opening command file (mvela / John Frickson)
 - Fix missing argument in open calls (Xavier Bachelot / John Frickson)
 - NSCA close/POLLNVAL/accept bug causes hang (mib / John Frickson)
+
 
 2.9.1 - 01/27/2012
 ------------------
