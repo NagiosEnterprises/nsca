@@ -10,7 +10,7 @@ monitoring server, there are some security implications that you
 should be aware of.  
 
 The main thing you need to be aware of is the fact that malicious
-users could potentionally use the NSCA client to send fake service
+users could potentially use the NSCA client to send fake service
 and host check results to the NSCA daemon (and thus Nagios).  This
 is bad for two reasons:
 
