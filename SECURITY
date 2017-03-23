@@ -115,7 +115,7 @@ What This Means
    once the packet is decrypted.
 
 3) If someone tries to dabble with the contents of the
-   packet as it is being tranferred between the client and
+   packet as it is being transferred between the client and
    the server, the daemon will likely discard the packet, as
    the CRC-32 value of the packet will likely be invalid.
 
