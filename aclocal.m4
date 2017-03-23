@@ -241,7 +241,7 @@ return !!mcrypt_check_version(NULL);
           echo "*** you may also be able to get things to work by modifying LD_LIBRARY_PATH"
           echo "***" ],
         [ echo "*** The test program failed to compile or link. See the file config.log for the"
-          echo "*** exact error that occured. This usually means LIBMCRYPT was incorrectly installed"
+          echo "*** exact error that occurred. This usually means LIBMCRYPT was incorrectly installed"
           echo "*** or that you have moved LIBMCRYPT since it was installed. In the latter case, you"
           echo "*** may want to edit the libmcrypt-config script: $LIBMCRYPT_CONFIG" ])
           CFLAGS="$ac_save_CFLAGS"
