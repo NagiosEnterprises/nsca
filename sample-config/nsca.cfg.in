@@ -29,7 +29,7 @@ pid_file=/var/run/nsca.pid
 
 # PORT NUMBER
 # Port number we should wait for connections on.
-# This must be a non-priveledged port (i.e. > 1024).
+# This must be a non-privileged port (i.e. > 1024).
 
 server_port=@nsca_port@
 
