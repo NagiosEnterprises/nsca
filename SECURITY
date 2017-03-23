@@ -161,7 +161,7 @@ Caveats
    NSCA clients and NSCA daemon.
 
 2) These assumptions rely on the fact that you're using a
-   resonable secure password to encrypt/decrypt the data.
+   reasonable secure password to encrypt/decrypt the data.
    Depending on the crypto algorithm used, this could mean
    length and/or randomness.  As a general rule, longer
    passwords or passphrases are better than shorter ones.
