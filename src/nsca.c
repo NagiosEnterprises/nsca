@@ -93,7 +93,7 @@ int main(int argc, char **argv){
         if(result!=OK || show_help==TRUE || show_license==TRUE || show_version==TRUE){
 
 		if(result!=OK)
-			printf("Incorrect command line arguments supplied\n");
+			fprintf(stderr, "Incorrect command line arguments supplied\n");
                 printf("\n");
                 printf("NSCA - Nagios Service Check Acceptor\n");
 		printf("Copyright (c) 2009 Nagios Core Development Team and Community Contributors\n");

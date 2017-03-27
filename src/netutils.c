@@ -61,7 +61,7 @@ int my_connect(char *host_name,int port,int *sd,char *proto){
 		/* else do a DNS lookup */
 		hp=gethostbyname((const char *)host_name);
 		if(hp==NULL){
-			printf("Invalid host name '%s'\n",host_name);
+			fprintf(stderr, "Invalid host name '%s'\n",host_name);
 			return STATE_UNKNOWN;
 		        }
 
@@ -70,14 +70,14 @@ int my_connect(char *host_name,int port,int *sd,char *proto){
 
 	/* map transport protocol name to protocol number */
 	if(((ptrp=getprotobyname(proto)))==NULL){
-		printf("Cannot map \"%s\" to protocol number\n",proto);
+		fprintf(stderr, "Cannot map \"%s\" to protocol number\n",proto);
 		return STATE_UNKNOWN;
 	        }
 
 	/* create a socket */
 	*sd=socket(PF_INET,(!strcmp(proto,"udp"))?SOCK_DGRAM:SOCK_STREAM,ptrp->p_proto);
 	if(*sd<0){
-		printf("Socket creation failed\n");
+		fprintf(stderr, "Socket creation failed\n");
 		return STATE_UNKNOWN;
 	        }
 
@@ -86,16 +86,16 @@ int my_connect(char *host_name,int port,int *sd,char *proto){
 	if(result<0){
 		switch(errno){  
 		case ECONNREFUSED:
-			printf("Connection refused by host\n");
+			fprintf(stderr, "Connection refused by host\n");
 			break;
 		case ETIMEDOUT:
-			printf("Timeout while attempting connection\n");
+			fprintf(stderr, "Timeout while attempting connection\n");
 			break;
 		case ENETUNREACH:
-			printf("Network is unreachable\n");
+			fprintf(stderr, "Network is unreachable\n");
 			break;
 		default:
-			printf("Connection refused or timed out\n");
+			fprintf(stderr, "Connection refused or timed out\n");
 		        }
 
 		return STATE_CRITICAL;
