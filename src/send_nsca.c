@@ -114,7 +114,7 @@ int main(int argc, char **argv){
 		printf("This utility is used to send passive check results to the NSCA daemon.  Host and\n");
 		printf("Service check data that is to be sent to the NSCA daemon is read from standard\n");
 		printf("input. Input should be provided in the following format (tab-delimited unless\n");
-		printf("overriden with -d command line argument, one entry per line):\n");
+		printf("overridden with -d command line argument, one entry per line):\n");
 		printf("\n");
 		printf("Service Checks:\n");
 		printf("<host_name>[tab]<svc_description>[tab]<return_code>[tab]<plugin_output>[newline]\n\n");
