@@ -215,6 +215,10 @@ int main(int argc, char **argv){
 			input_buffer[pos] = c;
 			c = getc(stdin);
 			pos++;
+			if(pos>=MAX_INPUT_BUFFER-1){
+				printf("Warning: packet[%d] truncated to %d bytes.\n",total_packets, MAX_INPUT_BUFFER);
+				break;
+			}
 			}
 		input_buffer[pos] = 0;
 		strip(input_buffer);
