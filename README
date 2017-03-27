@@ -54,7 +54,7 @@ There are two pieces to this addon:
 			<return_code>=numeric return code
 			<plugin_output>=output from service check
 
-		  Host check information is submitted in a similiar
+		  Host check information is submitted in a similar
  		  fashion - just leave out the service description:
 
 			<host_name>[tab]<return_code>[tab]<plugin_output>[newline]

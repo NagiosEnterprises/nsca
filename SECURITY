@@ -80,7 +80,7 @@ Authentication of checks results works as follows:
 
 ... packet gets sent over the wire...
 
-5) The NSCA daemon recieves the packet and decrypts it using
+5) The NSCA daemon receives the packet and decrypts it using
    the password stored in the nsca.cfg file.  Decryption of
    the packet is done using the algorithm specified by the
    decryption_method variable in the nsca.cfg file.

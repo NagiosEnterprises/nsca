@@ -133,7 +133,7 @@ int encrypt_init(char *password,int encryption_method,char *received_iv,struct c
         if(received_iv==NULL)
                 generate_transmitted_iv(CI->transmitted_iv);
 
-	/* client recieves IV from server */
+	/* client receives IV from server */
         else
                 memcpy(CI->transmitted_iv,received_iv,TRANSMITTED_IV_SIZE);
 
@@ -437,7 +437,7 @@ void randomize_buffer(char *buffer,int buffer_size){
 	/**** FILL BUFFER WITH RANDOM ALPHA-NUMERIC CHARACTERS ****/
 
 	/***************************************************************
-	   Only use alpha-numeric characters becase plugins usually
+	   Only use alpha-numeric characters because plugins usually
 	   only generate numbers and letters in their output.  We
 	   want the buffer to contain the same set of characters as
 	   plugins, so its harder to distinguish where the real output
