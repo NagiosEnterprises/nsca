@@ -106,6 +106,10 @@ AC_CHECK_LIB(wrap,main,[
 AC_SUBST(LIBWRAPLIBS)
 AC_CHECK_FUNCS(strdup strstr strtoul sigaction)
 
+dnl we require modern address resolution functions.
+AC_CHECK_FUNCS([getnameinfo getaddrinfo], ,
+	[AC_MSG_ERROR([Missing address resolution functions])])
+
 dnl Define sig_atomic_t to int if it's not available.
 AC_CHECK_TYPE([sig_atomic_t],[],[
 	AC_DEFINE([sig_atomic_t],[int],
