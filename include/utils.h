@@ -47,7 +47,6 @@ struct crypt_instance {
 #endif
         };
 
-char *escape_newlines(char *);
 void generate_crc32_table(void);
 unsigned long calculate_crc32(char *, int);
 

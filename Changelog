@@ -5,6 +5,7 @@ NSCA Changelog
 x.x.x - xxxx-xx-xx
 ------------------
 - Changed release date to ISO format (yyyy-mm-dd) (John Frickson)
+- Removed escape newlines so that long output works (Bryan Heden)
 
 
 2.9.2 - 2016-12-07
