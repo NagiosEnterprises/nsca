@@ -130,8 +130,8 @@ of TCP wrappers, you need to do the following things:
     nsca            5667/tcp  # NSCA
 
 2. Add entries for the NSCA daemon to either your `inetd` or `xinetd`
-   configuration files.  Which one your use will depend on which
-   superserver is installed on your system.  Both methods are described
+   configuration files. Which one you use will depend on which
+   superserver is installed on your system. Both methods are described
    below.
 
    Notes:
