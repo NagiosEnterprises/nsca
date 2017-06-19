@@ -2,6 +2,26 @@
 NSCA Changelog
 **************
 
+x.x.x - xxxx-xx-xx
+------------------
+- Changed release date to ISO format (yyyy-mm-dd) (John Frickson)
+- typofixes (Lajos Veres)
+- Send errors to stderr, where they belong (Bas Couwenberg / Sean Finney)
+- Fix spelling errors (Bas Couwenberg)
+- Fix potential buffer overflow (Bas Couwenberg)
+- Spelling fixes (Josh Soref)
+- Removed escape newlines so that long output works (Bryan Heden)
+
+
+2.9.2 - 2016-12-07
+------------------
+- Renamed configure.in to configure.ac and added check for sigaction (John Frickson)
+- Replaced all instances of signal() with sigaction() + blocking (John Frickson)
+- Race condition when opening command file (mvela / John Frickson)
+- Fix missing argument in open calls (Xavier Bachelot / John Frickson)
+- NSCA close/POLLNVAL/accept bug causes hang (mib / John Frickson)
+
+
 2.9.1 - 01/27/2012
 ------------------
 - Applied patch to allow packets arriving with a future time stamp (Daniel Wittenberg)
@@ -93,9 +113,9 @@ NSCA Changelog
 
 1.2.0 - 02/12/2002
 ------------------
-- Compatability between older versions has been broken!
+- Compatibility between older versions has been broken!
 - Server now sends client IV and timestamp, fixing
-  encryption problems and making it more resistent
+  encryption problems and making it more resistant
   to "replay" attacks (Ralf Ertzinger)
 - Random IV is now seeded from /dev/urandom instead
   of time() if possible

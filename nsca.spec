@@ -1,5 +1,5 @@
 %define name nsca
-%define version 2.9.1
+%define version 2.9.2
 %define release 1
 %define nsusr nagios
 %define nsgrp nagios
@@ -10,7 +10,7 @@
 # rpm -ba|--rebuild --define 'nsport 5666'
 %{?port:%define nsport %{port}}
 
-# Macro that print mesages to syslog at package (un)install time
+# Macro that print messages to syslog at package (un)install time
 %define nnmmsg logger -t %{name}/rpm
 
 Summary: Host/service/network monitoring agent for Nagios
@@ -146,7 +146,7 @@ rm -rf $RPM_BUILD_ROOT
 %doc Changelog LEGAL README SECURITY
 
 %changelog
-* Wed Jan 28 2004 Falk Höppner <fh at honix de>
+* Wed Jan 28 2004 Falk HÃ¶ppner <fh at honix de>
 - Create SPEC from nrpe.spec  
 - Tested on ia32/ia64 with SLES8/RHEL3
 

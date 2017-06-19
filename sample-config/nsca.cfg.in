@@ -29,7 +29,7 @@ pid_file=/var/run/nsca.pid
 
 # PORT NUMBER
 # Port number we should wait for connections on.
-# This must be a non-priveledged port (i.e. > 1024).
+# This must be a non-privileged port (i.e. > 1024).
 
 server_port=@nsca_port@
 
@@ -146,7 +146,7 @@ max_packet_age=30
 
 
 # DECRYPTION PASSWORD
-# This is the password/passphrase that should be used to descrypt the
+# This is the password/passphrase that should be used to decrypt the
 # incoming packets.  Note that all clients must encrypt the packets
 # they send using the same password!
 # IMPORTANT: You don't want all the users on this system to be able

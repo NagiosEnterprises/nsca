@@ -4,7 +4,7 @@
  * License: GPL v2
  * Copyright (c) 2000-2007 Ethan Galstad (nagios@nagios.org)
  *
- * Last Modified: 01-27-2012
+ * Last Modified: 12-07-2016
  *
  * Command line: SEND_NSCA <host_address> [-p port] [-to to_sec] [-c config_file]
  *
@@ -72,6 +72,9 @@ int main(int argc, char **argv){
 	int16_t return_code;
 	u_int32_t calculated_crc32;
 	char *inputptr, *ptr1, *ptr2, *ptr3, *ptr4;
+#ifdef HAVE_SIGACTION
+	struct sigaction sig_action;
+#endif
 
 
 	/* process command-line arguments */
@@ -80,7 +83,7 @@ int main(int argc, char **argv){
 	if(result!=OK || show_help==TRUE || show_license==TRUE || show_version==TRUE){
 
 		if(result!=OK)
-			printf("Incorrect command line arguments supplied\n");
+			fprintf(stderr, "Incorrect command line arguments supplied\n");
 		printf("\n");
 		printf("NSCA Client %s\n",PROGRAM_VERSION);
 		printf("Copyright (c) 2000-2007 Ethan Galstad (www.nagios.org)\n");
@@ -111,7 +114,7 @@ int main(int argc, char **argv){
 		printf("This utility is used to send passive check results to the NSCA daemon.  Host and\n");
 		printf("Service check data that is to be sent to the NSCA daemon is read from standard\n");
 		printf("input. Input should be provided in the following format (tab-delimited unless\n");
-		printf("overriden with -d command line argument, one entry per line):\n");
+		printf("overridden with -d command line argument, one entry per line):\n");
 		printf("\n");
 		printf("Service Checks:\n");
 		printf("<host_name>[tab]<svc_description>[tab]<return_code>[tab]<plugin_output>[newline]\n\n");
@@ -134,7 +137,7 @@ int main(int argc, char **argv){
 
 	/* exit if there are errors... */
 	if(result==ERROR){
-		printf("Error: Config file '%s' contained errors...\n",config_file);
+		fprintf(stderr, "Error: Config file '%s' contained errors...\n",config_file);
 		do_exit(STATE_CRITICAL);
 		}
 
@@ -142,7 +145,15 @@ int main(int argc, char **argv){
 	generate_crc32_table();
 
 	/* initialize alarm signal handling */
+#ifdef HAVE_SIGACTION
+	sig_action.sa_sigaction = NULL;
+	sig_action.sa_handler = alarm_handler;
+	sigfillset(&sig_action.sa_mask);
+	sig_action.sa_flags = SA_NODEFER|SA_RESTART;
+	sigaction(SIGALRM, &sig_action, NULL);
+#else
 	signal(SIGALRM,alarm_handler);
+#endif /* HAVE_SIGACTION */
 
 	/* set socket timeout */
 	alarm(socket_timeout);
@@ -154,7 +165,7 @@ int main(int argc, char **argv){
 
 	/* we couldn't connect */
 	if(result!=STATE_OK){
-		printf("Error: Could not connect to host %s on port %d\n",server_name,server_port);
+		fprintf(stderr, "Error: Could not connect to host %s on port %d\n",server_name,server_port);
 		do_exit(STATE_CRITICAL);
 	        }
 
@@ -165,7 +176,7 @@ int main(int argc, char **argv){
 	/* read the initialization packet containing the IV and timestamp */
 	result=read_init_packet(sd);
 	if(result!=OK){
-		printf("Error: Could not read init packet from server\n");
+		fprintf(stderr, "Error: Could not read init packet from server\n");
 		close(sd);
 		do_exit(STATE_CRITICAL);
 	        }
@@ -176,7 +187,7 @@ int main(int argc, char **argv){
 
 	/* initialize encryption/decryption routines with the IV we received from the server */
         if(encrypt_init(password,encryption_method,received_iv,&CI)!=OK){
-		printf("Error: Failed to initialize encryption libraries for method %d\n",encryption_method);
+		fprintf(stderr, "Error: Failed to initialize encryption libraries for method %d\n",encryption_method);
 		close(sd);
 		do_exit(STATE_CRITICAL);
 	        }
@@ -204,6 +215,10 @@ int main(int argc, char **argv){
 			input_buffer[pos] = c;
 			c = getc(stdin);
 			pos++;
+			if(pos>=MAX_INPUT_BUFFER-1){
+				printf("Warning: packet[%d] truncated to %d bytes.\n",total_packets, MAX_INPUT_BUFFER);
+				break;
+			}
 			}
 		input_buffer[pos] = 0;
 		strip(input_buffer);
@@ -234,13 +249,11 @@ int main(int argc, char **argv){
 		if(ptr4==NULL){
 			strcpy(svc_description,"");
 			return_code=atoi(ptr2);
-                        ptr3=escape_newlines(ptr3);
 			strncpy(plugin_output,ptr3,sizeof(plugin_output)-1);
 		        }
 		else{
 			strncpy(svc_description,ptr2,sizeof(svc_description)-1);
 			return_code=atoi(ptr3);
-                        ptr4=escape_newlines(ptr4);
 			strncpy(plugin_output,ptr4,sizeof(plugin_output)-1);
 		        }
 
@@ -280,7 +293,7 @@ int main(int argc, char **argv){
 
 		/* there was an error sending the packet */
 		if(rc==-1){
-			printf("Error: Could not send data to host\n");
+			fprintf(stderr, "Error: Could not send data to host\n");
 			close(sd);
 			do_exit(STATE_UNKNOWN);
 	                }
@@ -318,7 +331,7 @@ static void do_exit(int return_code){
 	alarm(0);
 
 	/* encryption/decryption routine cleanup */
-	encrypt_cleanup(encryption_method,CI);
+	/* encrypt_cleanup(encryption_method,CI); */
 
 #ifdef DEBUG
 	printf("Cleaned up encryption routines\n");
@@ -353,13 +366,13 @@ int read_init_packet(int sock){
 
         /* recv() error or server disconnect */
         if(rc<=0){
-                printf("Error: Server closed connection before init packet was received\n");
+                fprintf(stderr, "Error: Server closed connection before init packet was received\n");
                 return ERROR;
                 }
 
         /* we couldn't read the correct amount of data, so bail out */
         else if(bytes_to_recv!=sizeof(receive_packet)){
-                printf("Error: Init packet from server was too short (%d bytes received, %d expected)\n",bytes_to_recv,sizeof(receive_packet));
+                fprintf(stderr, "Error: Init packet from server was too short (%d bytes received, %d expected)\n",bytes_to_recv,sizeof(receive_packet));
                 return ERROR;
                 }
 
@@ -467,8 +480,9 @@ int process_arguments(int argc, char **argv){
 
 /* handle timeouts */
 void alarm_handler(int sig){
-
-	printf("Error: Timeout after %d seconds\n",socket_timeout);
+	const char msg[] = "Error: Timeout after %d seconds\n";
+	/* fprintf(stderr, "Error: Timeout after %d seconds\n",socket_timeout); */
+	write(STDOUT_FILENO, msg, sizeof(msg) - 1);
 
 	do_exit(STATE_CRITICAL);
         }

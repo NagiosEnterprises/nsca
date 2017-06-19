@@ -28,8 +28,8 @@
  *
  ********************************************************************************/
 
-#ifndef _UTILS_H
-#define _UTILS_H
+#ifndef NSCA_UTILS_H_INCLUDED
+#define NSCA_UTILS_H_INCLUDED
 
 #include "config.h"
 
@@ -47,7 +47,6 @@ struct crypt_instance {
 #endif
         };
 
-char *escape_newlines(char *);
 void generate_crc32_table(void);
 unsigned long calculate_crc32(char *, int);
 
