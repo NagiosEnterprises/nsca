@@ -1,6 +1,5 @@
-********************
 NSCA SECURITY README
-********************
+====================
 
 
 General Security Considerations
@@ -173,7 +172,10 @@ Caveats
    the packets sent between the client and daemon.
 
 
+Questions?
+----------
 
-Questions?  Comments?  Suggestions?
+If you have any questions, comments, or suggestions, feel free to contact us
+via the [support forum](http://support.nagios.com/forum/) or through our 
+[Github page](https://github.com/NagiosEnterprises/nsca/)
 
-	-- Ethan Galstad (nagios@nagios.org)
