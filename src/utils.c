@@ -40,40 +40,6 @@ static unsigned long crc32_table[256];
 static volatile sig_atomic_t mcrypt_initialized=FALSE;
 #endif
 
-/* escapes newlines in a string, snagged from nagios-3.0.6/base/utils.c */
-char *escape_newlines(char *rawbuf){
-        char *newbuf=NULL;
-        register int x,y;
-
-        if(rawbuf==NULL)
-                return NULL;
-
-        /* allocate enough memory to escape all chars if necessary */
-        if((newbuf=malloc((strlen(rawbuf)*2)+1))==NULL)
-                return NULL;
-
-        for(x=0,y=0;rawbuf[x]!=(char)'\x0';x++){
-
-                /* escape backslashes */
-                if(rawbuf[x]=='\\'){
-                        newbuf[y++]='\\';
-                        newbuf[y++]='\\';
-                        }
-
-                /* escape newlines */
-                else if(rawbuf[x]=='\n'){
-                        newbuf[y++]='\\';
-                        newbuf[y++]='n';
-                        }
-
-                else
-                        newbuf[y++]=rawbuf[x];
-                }
-        newbuf[y]='\x0';
-
-        return newbuf;
-        }
-
 /* build the crc table - must be called before calculating the crc value */
 void generate_crc32_table(void){
 	unsigned long crc, poly;
@@ -133,7 +99,7 @@ int encrypt_init(char *password,int encryption_method,char *received_iv,struct c
         if(received_iv==NULL)
                 generate_transmitted_iv(CI->transmitted_iv);
 
-	/* client recieves IV from server */
+	/* client receives IV from server */
         else
                 memcpy(CI->transmitted_iv,received_iv,TRANSMITTED_IV_SIZE);
 
@@ -255,7 +221,7 @@ int encrypt_init(char *password,int encryption_method,char *received_iv,struct c
         /* get maximum key size for this algorithm */
         CI->keysize=mcrypt_enc_get_key_size(CI->td);
 
-        /* generate an encryption/decription key using the password */
+        /* generate an encryption/description key using the password */
         if((CI->key=(char *)malloc(CI->keysize))==NULL){
                 syslog(LOG_ERR,"Could not allocate memory for encryption/decryption key");
                 return ERROR;
@@ -437,7 +403,7 @@ void randomize_buffer(char *buffer,int buffer_size){
 	/**** FILL BUFFER WITH RANDOM ALPHA-NUMERIC CHARACTERS ****/
 
 	/***************************************************************
-	   Only use alpha-numeric characters becase plugins usually
+	   Only use alpha-numeric characters because plugins usually
 	   only generate numbers and letters in their output.  We
 	   want the buffer to contain the same set of characters as
 	   plugins, so its harder to distinguish where the real output
