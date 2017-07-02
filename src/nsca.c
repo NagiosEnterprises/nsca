@@ -1368,7 +1368,7 @@ static int open_command_file(void)
 		return OK;
 
 	do
-		fd = open(command_file,O_WRONLY|((append_to_file==TRUE)?O_APPEND:0));
+		fd = open(command_file,O_WRONLY|O_NONBLOCK|((append_to_file==TRUE)?O_APPEND:0));
 	while(fd < 0 && errno == EINTR);
 
 	/* command file doesn't exist - monitoring app probably isn't running... */
