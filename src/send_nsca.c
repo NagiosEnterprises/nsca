@@ -261,13 +261,11 @@ int main(int argc, char **argv){
 		if(ptr4==NULL){
 			strcpy(svc_description,"");
 			return_code=atoi(ptr2);
-			ptr3=escape_newlines(ptr3);
 			strncpy(plugin_output,ptr3,plugin_output_length-1);
 		}
 		else{
 			strncpy(svc_description,ptr2,sizeof(svc_description)-1);
 			return_code=atoi(ptr3);
-			ptr4=escape_newlines(ptr4);
 			strncpy(plugin_output,ptr4,plugin_output_length-1);
 		}
 
