@@ -34,6 +34,7 @@ static char command_file[MAX_INPUT_BUFFER]="";
 static char password[MAX_INPUT_BUFFER]="";
 
 static enum { OPTIONS_ERROR, SINGLE_PROCESS_DAEMON, MULTI_PROCESS_DAEMON, INETD } mode=SINGLE_PROCESS_DAEMON;
+static int foreground=FALSE;
 static int debug=FALSE;
 static int aggregate_writes=FALSE;
 static int decryption_method=ENCRYPT_XOR;
@@ -115,10 +116,11 @@ int main(int argc, char **argv){
 	        }
 
 	if(result!=OK || show_help==TRUE){
-                printf("Usage: %s -c <config_file> [mode]\n",argv[0]);
+                printf("Usage: %s [-f] -c <config_file> [mode]\n",argv[0]);
                 printf("\n");
                 printf("Options:\n");
 		printf(" <config_file> = Name of config file to use\n");
+		printf(" -f            = Run in foreground only. Disables fork.\n");
 		printf(" [mode]        = Determines how NSCA should run. Valid modes:\n");
                 printf("   --inetd     = Run as a service under inetd or xinetd\n");
                 printf("   --daemon    = Run as a standalone multi-process daemon\n");
@@ -128,7 +130,7 @@ int main(int argc, char **argv){
                 printf("This program is designed to accept passive check results from\n");
                 printf("remote hosts that use the send_nsca utility.  Can run as a service\n");
                 printf("under inetd or xinetd (read the docs for info on this), or as a\n");
-                printf("standalone daemon.\n");
+                printf("standalone daemon or forground process.\n");
                 printf("\n");
                 }
 
@@ -201,10 +203,10 @@ int main(int argc, char **argv){
 		       V     */
 
                 /* daemonize and start listening for requests... */
-                if(fork()==0){
+                if(foreground || fork()==0){
 
                         /* we're a daemon - set up a new process group */
-                        setsid();
+                        if(!foreground) setsid();
 
 			/* handle signals */
 #ifdef HAVE_SIGACTION
@@ -1385,6 +1387,10 @@ int process_arguments(int argc, char **argv){
 		/* show usage */
 		if(!strcmp(argv[x-1],"-h") || !strcmp(argv[x-1],"--help"))
 			show_help=TRUE;
+
+		/* run in foreground mode */
+		else if(!strcmp(argv[x-1],"-f") || !strcmp(argv[x-1],"--foreground"))
+			foreground=TRUE;
 
 		/* show license */
 		else if(!strcmp(argv[x-1],"-l") || !strcmp(argv[x-1],"--license"))
