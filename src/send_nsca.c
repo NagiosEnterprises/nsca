@@ -460,7 +460,7 @@ int process_arguments(int argc, char **argv){
 		/* delimiter to use when parsing input */
 		else if(!strcmp(argv[x-1],"-d")){
 			if(x<argc){
-				errno=0
+				errno=0;
 				long int d = strtol(argv[x], NULL, 16);
 				if(errno){
 				    snprintf(delimiter,sizeof(delimiter),"%s",argv[x]);
@@ -476,7 +476,7 @@ int process_arguments(int argc, char **argv){
 		/* delimiter to use when parsing input set */
 		else if(!strcmp(argv[x-1],"-ds")){
 			if(x<argc){
-				errno=0
+				errno=0;
 				long int d = strtol(argv[x], NULL, 16);
 				if(errno){
 				    snprintf(block_delimiter,sizeof(block_delimiter),"%s",argv[x]);
