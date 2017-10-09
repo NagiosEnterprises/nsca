@@ -205,20 +205,25 @@ int main(int argc, char **argv){
 	/* read all data from STDIN until there isn't anymore */
 
 	while(!feof(stdin)){
-		int c = getc(stdin);
-		if (c == -1){
-			break;
-			}
 		int pos = 0;
-		while (c != block_delimiter[0]){
-			if (c == -1){	// in case we don't terminate properly
-					// or are in single-input mode.
-				break;
-				}
-			input_buffer[pos] = c;
-			c = getc(stdin);
-			pos++;
-			}
+		int c = 0;
+		while (c = getc(stdin) != -1){
+                    if(pos > MAX_INPUT_BUFFER - 1)
+			printf("Error: Input set is longer than max allowed.\n");
+			return ERROR;
+
+		    input_buffer[pos++] = c;
+
+		    if(c == block_delimiter[0]) 
+			input_buffer[pos-1] = 0;
+			break;
+
+		    }
+
+#ifdef DEBUG
+		printf("New update set.\n");
+#endif
+
 		input_buffer[pos] = 0;
 		strip(input_buffer);
 
