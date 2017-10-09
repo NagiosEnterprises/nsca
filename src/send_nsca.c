@@ -100,7 +100,7 @@ int main(int argc, char **argv){
 	        }
 
 	if(result!=OK || show_help==TRUE){
-		printf("Usage: %s -H <host_address> [-p port] [-to to_sec] [-d delim] [-c config_file]\n",argv[0]);
+		printf("Usage: %s -H <host_address> [-p port] [-to to_sec] [-d delim] [-ds set_delim] [-c config_file]\n",argv[0]);
 		printf("\n");
 		printf("Options:\n");
 		printf(" <host_address> = The IP address of the host running the NSCA daemon\n");
@@ -108,6 +108,7 @@ int main(int argc, char **argv){
 		printf(" [to_sec]       = Number of seconds before connection attempt times out.\n");
 		printf("                  (default timeout is %d seconds)\n",DEFAULT_SOCKET_TIMEOUT);
 		printf(" [delim]        = Delimiter to use when parsing input (defaults to a tab)\n");
+		printf(" [set_delim]    = Delimiter to use when parsing different sets (defaults to a ETB character)\n");
 		printf(" [config_file]  = Name of config file to use\n");
 		printf("\n");
 		printf("Note:\n");
@@ -455,12 +456,23 @@ int process_arguments(int argc, char **argv){
 			else
 				return ERROR;
 		        }
-
+                
 		/* delimiter to use when parsing input */
 		else if(!strcmp(argv[x-1],"-d")){
 			if(x<argc){
 				snprintf(delimiter,sizeof(delimiter),"%s",argv[x]);
 				delimiter[sizeof(delimiter)-1]='\x0';
+				x++;
+			        }
+			else
+				return ERROR;
+		        }
+
+		/* delimiter to use when parsing input set */
+		else if(!strcmp(argv[x-1],"-ds")){
+			if(x<argc){
+				snprintf(block_delimiter,sizeof(block_delimiter),"%s",argv[x]);
+				block_delimiter[sizeof(block_delimiter)-1]='\x0';
 				x++;
 			        }
 			else
