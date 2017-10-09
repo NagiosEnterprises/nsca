@@ -465,10 +465,9 @@ int process_arguments(int argc, char **argv){
 				if(errno){
 				    snprintf(delimiter,sizeof(delimiter),"%s",argv[x]);
 				    delimiter[sizeof(delimiter)-1]='\x0';
-			        }else delimiter[0]=char(d)
+			        }else delimiter[0]= (char) d;
 				x++;
 				}
-			}
 			else
 				return ERROR;
 		        }
@@ -481,7 +480,7 @@ int process_arguments(int argc, char **argv){
 				if(errno){
 				    snprintf(block_delimiter,sizeof(block_delimiter),"%s",argv[x]);
 				    block_delimiter[sizeof(block_delimiter)-1]='\x0';
-			        }else block_delimiter[0]=char(d)
+			        }else block_delimiter[0]= (char) d;
 				x++; 
 				}
 			else
