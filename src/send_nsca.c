@@ -107,8 +107,8 @@ int main(int argc, char **argv){
 		printf(" [port]         = The port on which the daemon is running - default is %d\n",DEFAULT_SERVER_PORT);
 		printf(" [to_sec]       = Number of seconds before connection attempt times out.\n");
 		printf("                  (default timeout is %d seconds)\n",DEFAULT_SOCKET_TIMEOUT);
-		printf(" [delim]        = Delimiter to use when parsing input (defaults to a tab)\n");
-		printf(" [set_delim]    = Delimiter to use when parsing different sets (defaults to a ETB character)\n");
+		printf(" [delim]        = Delimiter to use when parsing input (defaults to a tab). Honors hex formatted values: 0x09.\n");
+		printf(" [set_delim]    = Delimiter to use when parsing different sets (defaults to a ETB character). Honors hex formatted values: 0x17.\n");
 		printf(" [config_file]  = Name of config file to use\n");
 		printf("\n");
 		printf("Note:\n");
@@ -460,10 +460,15 @@ int process_arguments(int argc, char **argv){
 		/* delimiter to use when parsing input */
 		else if(!strcmp(argv[x-1],"-d")){
 			if(x<argc){
-				snprintf(delimiter,sizeof(delimiter),"%s",argv[x]);
-				delimiter[sizeof(delimiter)-1]='\x0';
+				errno=0
+				long int d = strtol(argv[x], NULL, 16);
+				if(errno){
+				    snprintf(delimiter,sizeof(delimiter),"%s",argv[x]);
+				    delimiter[sizeof(delimiter)-1]='\x0';
+			        }else delimiter[0]=char(d)
 				x++;
-			        }
+				}
+			}
 			else
 				return ERROR;
 		        }
@@ -471,10 +476,14 @@ int process_arguments(int argc, char **argv){
 		/* delimiter to use when parsing input set */
 		else if(!strcmp(argv[x-1],"-ds")){
 			if(x<argc){
-				snprintf(block_delimiter,sizeof(block_delimiter),"%s",argv[x]);
-				block_delimiter[sizeof(block_delimiter)-1]='\x0';
-				x++;
-			        }
+				errno=0
+				long int d = strtol(argv[x], NULL, 16);
+				if(errno){
+				    snprintf(block_delimiter,sizeof(block_delimiter),"%s",argv[x]);
+				    block_delimiter[sizeof(block_delimiter)-1]='\x0';
+			        }else block_delimiter[0]=char(d)
+				x++; 
+				}
 			else
 				return ERROR;
 		        }
