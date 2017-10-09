@@ -131,7 +131,9 @@ int main(int argc, char **argv){
         if(result!=OK || show_help==TRUE || show_license==TRUE || show_version==TRUE)
 		do_exit(STATE_UNKNOWN);
 
-
+#ifdef DEBUG
+	printf("Delimiter: 0x%02hhx Set Delimiter: 0x%02hhx \n", delimiter[0], block_delimiter[0]);
+#endif   
 
 	/* read the config file */
 	result=read_config_file(config_file);	
