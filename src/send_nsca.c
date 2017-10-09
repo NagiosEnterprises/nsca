@@ -210,7 +210,7 @@ int main(int argc, char **argv){
 			break;
 			}
 		int pos = 0;
-		while (c != 23){
+		while (c != block_delimiter[0]){
 			if (c == -1){	// in case we don't terminate properly
 					// or are in single-input mode.
 				break;
