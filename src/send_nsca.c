@@ -100,14 +100,15 @@ int main(int argc, char **argv){
 	        }
 
 	if(result!=OK || show_help==TRUE){
-		printf("Usage: %s -H <host_address> [-p port] [-to to_sec] [-d delim] [-c config_file]\n",argv[0]);
+		printf("Usage: %s -H <host_address> [-p port] [-to to_sec] [-d delim] [-ds set_delim] [-c config_file]\n",argv[0]);
 		printf("\n");
 		printf("Options:\n");
 		printf(" <host_address> = The IP address of the host running the NSCA daemon\n");
 		printf(" [port]         = The port on which the daemon is running - default is %d\n",DEFAULT_SERVER_PORT);
 		printf(" [to_sec]       = Number of seconds before connection attempt times out.\n");
 		printf("                  (default timeout is %d seconds)\n",DEFAULT_SOCKET_TIMEOUT);
-		printf(" [delim]        = Delimiter to use when parsing input (defaults to a tab)\n");
+		printf(" [delim]        = Delimiter to use when parsing input (defaults to a tab). Honors hex formatted values: 0x09.\n");
+		printf(" [set_delim]    = Delimiter to use when parsing different sets (defaults to a ETB character). Honors hex formatted values: 0x17.\n");
 		printf(" [config_file]  = Name of config file to use\n");
 		printf("\n");
 		printf("Note:\n");
@@ -130,7 +131,9 @@ int main(int argc, char **argv){
         if(result!=OK || show_help==TRUE || show_license==TRUE || show_version==TRUE)
 		do_exit(STATE_UNKNOWN);
 
-
+#ifdef DEBUG
+	printf("Delimiter: 0x%02hhx Set Delimiter: 0x%02hhx \n", delimiter[0], block_delimiter[0]);
+#endif   
 
 	/* read the config file */
 	result=read_config_file(config_file);	
@@ -202,21 +205,33 @@ int main(int argc, char **argv){
 	/* read all data from STDIN until there isn't anymore */
 
 	while(!feof(stdin)){
-		int c = getc(stdin);
-		if (c == -1){
-			break;
-			}
-		int pos = 0;
-		while (c != 23){
-			if (c == -1){	// in case we don't terminate properly
-					// or are in single-input mode.
-				break;
-				}
+		{
+		    int pos = 0;
+		    int c = 0;
+		    while ((c = getc(stdin)) >= 0){
+
+			if(pos > MAX_INPUT_BUFFER - 1){
+			    printf("Error: Input set is longer than max allowed.\n");
+			    return ERROR;
+			    }
+
 			input_buffer[pos] = c;
-			c = getc(stdin);
-			pos++;
+
+			if(c == block_delimiter[0]){
+			    input_buffer[pos] = 0;
+			    break;
+			    }
+
+			pos += 1;
 			}
-		input_buffer[pos] = 0;
+
+		    input_buffer[pos] = 0;
+		    }
+
+#ifdef DEBUG
+		printf("New update set: %s\n", input_buffer);
+#endif
+
 		strip(input_buffer);
 
 		if(!strcmp(input_buffer,""))
@@ -455,14 +470,33 @@ int process_arguments(int argc, char **argv){
 			else
 				return ERROR;
 		        }
-
+                
 		/* delimiter to use when parsing input */
 		else if(!strcmp(argv[x-1],"-d")){
 			if(x<argc){
-				snprintf(delimiter,sizeof(delimiter),"%s",argv[x]);
-				delimiter[sizeof(delimiter)-1]='\x0';
+				errno=0;
+				long int d = strtol(argv[x], NULL, 16);
+				if(errno){
+				    snprintf(delimiter,sizeof(delimiter),"%s",argv[x]);
+				    delimiter[sizeof(delimiter)-1]='\x0';
+			        }else delimiter[0]= (char) d;
 				x++;
-			        }
+				}
+			else
+				return ERROR;
+		        }
+
+		/* delimiter to use when parsing input set */
+		else if(!strcmp(argv[x-1],"-ds")){
+			if(x<argc){
+				errno=0;
+				long int d = strtol(argv[x], NULL, 16);
+				if(errno){
+				    snprintf(block_delimiter,sizeof(block_delimiter),"%s",argv[x]);
+				    block_delimiter[sizeof(block_delimiter)-1]='\x0';
+			        }else block_delimiter[0]= (char) d;
+				x++; 
+				}
 			else
 				return ERROR;
 		        }
