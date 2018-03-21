@@ -9,7 +9,7 @@
  *
  * Description:
  *
- * This file contains common network functions used in nrpe and check_nrpe.
+ * This file contains common network functions used in ncpa and send_nsca.
  *
  * License Information:
  *
