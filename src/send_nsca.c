@@ -83,6 +83,20 @@ int main(int argc, char **argv){
 	/* process command-line arguments */
 	result=process_arguments(argc,argv);
 
+	/* read the config file */
+	result=read_config_file(config_file);
+	if(legacy_2_7_mode){
+		plugin_output_length=OLD_PLUGINOUTPUT_LENGTH;
+		sizeof_send_packet = sizeof(send_packet) - (MAX_PLUGINOUTPUT_LENGTH - plugin_output_length);
+		// printf("Running in compatibility mode (server < V2.9, legacy plugin output length is %d bytes)\n", plugin_output_length);
+	}
+
+	/* exit if there are errors... */
+	if(result==ERROR){
+		fprintf(stderr, "Error: Config file '%s' contained errors...\n",config_file);
+		do_exit(STATE_CRITICAL);
+		}
+
 	if(result!=OK || show_help==TRUE || show_license==TRUE || show_version==TRUE){
 
 		if(result!=OK)
@@ -137,22 +151,6 @@ int main(int argc, char **argv){
 
         if(result!=OK || show_help==TRUE || show_license==TRUE || show_version==TRUE)
 		do_exit(STATE_UNKNOWN);
-
-
-
-	/* read the config file */
-	result=read_config_file(config_file);
-	if(legacy_2_7_mode){
-		plugin_output_length=OLD_PLUGINOUTPUT_LENGTH;
-		sizeof_send_packet = sizeof(send_packet) - (MAX_PLUGINOUTPUT_LENGTH - plugin_output_length);
-		// printf("Running in compatibility mode (server < V2.9, legacy plugin output length is %d bytes)\n", plugin_output_length);
-	}
-
-	/* exit if there are errors... */
-	if(result==ERROR){
-		fprintf(stderr, "Error: Config file '%s' contained errors...\n",config_file);
-		do_exit(STATE_CRITICAL);
-		}
 
 	/* generate the CRC 32 table */
 	generate_crc32_table();
