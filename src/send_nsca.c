@@ -626,9 +626,11 @@ int read_config_file(char *filename){
 			        }
 		        }
 		else if(strstr(input_buffer,"legacy_2_7_mode")){
-			if( strncmp(input_buffer, "true", 4) || strncmp(input_buffer, "yes", 3) ){
+			if( strstr(varvalue,"true")  || strstr(varvalue,"yes") ){
 				legacy_2_7_mode=TRUE;
-			}
+			} else if( strstr(varvalue,"false") || strstr(varvalue,"no") ){
+				legacy_2_7_mode=FALSE;
+				}
 		}
 		else{
 			printf("Unknown option specified in config file '%s' - Line %d\n",filename,line);
