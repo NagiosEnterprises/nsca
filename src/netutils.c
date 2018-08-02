@@ -47,8 +47,6 @@ int my_tcp_connect(char *host_name,int port,int *sd){
 
 /* opens a tcp or udp connection to a remote host */
 int my_connect(char *host_name,int port,int *sd,char *proto){
-	struct sockaddr_in servaddr;
-	struct hostent *hp;
 	struct protoent *ptrp;
 	int result;
 	struct addrinfo *aip = 0;
