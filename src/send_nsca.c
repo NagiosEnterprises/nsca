@@ -85,17 +85,19 @@ int main(int argc, char **argv){
 
 	/* read the config file */
 	result=read_config_file(config_file);
-	if(legacy_2_7_mode){
-		plugin_output_length=OLD_PLUGINOUTPUT_LENGTH;
-		sizeof_send_packet = sizeof(send_packet) - (MAX_PLUGINOUTPUT_LENGTH - plugin_output_length);
-		// printf("Running in compatibility mode (server < V2.9, legacy plugin output length is %d bytes)\n", plugin_output_length);
-	}
 
 	/* exit if there are errors... */
 	if(result==ERROR){
 		fprintf(stderr, "Error: Config file '%s' contained errors...\n",config_file);
 		do_exit(STATE_CRITICAL);
 		}
+
+	/* set output length depending on 2.7/2.9 mode */
+	if(legacy_2_7_mode){
+		plugin_output_length=OLD_PLUGINOUTPUT_LENGTH;
+		sizeof_send_packet = sizeof(send_packet) - (MAX_PLUGINOUTPUT_LENGTH - plugin_output_length);
+		// printf("Running in compatibility mode (server < V2.9, legacy plugin output length is %d bytes)\n", plugin_output_length);
+	}
 
 	if(result!=OK || show_help==TRUE || show_license==TRUE || show_version==TRUE){
 
