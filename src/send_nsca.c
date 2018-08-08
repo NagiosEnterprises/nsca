@@ -96,7 +96,6 @@ int main(int argc, char **argv){
 	if(legacy_2_7_mode){
 		plugin_output_length=OLD_PLUGINOUTPUT_LENGTH;
 		sizeof_send_packet = sizeof(send_packet) - (MAX_PLUGINOUTPUT_LENGTH - plugin_output_length);
-		// printf("Running in compatibility mode (server < V2.9, legacy plugin output length is %d bytes)\n", plugin_output_length);
 	}
 
 	if(result!=OK || show_help==TRUE || show_license==TRUE || show_version==TRUE){
@@ -115,8 +114,11 @@ int main(int argc, char **argv){
 		printf("NOT AVAILABLE");
 #endif		
 		printf("\n");
+		if(legacy_2_7_mode){
+			printf("Running in compatibility mode (server < V2.9, legacy plugin output length is %d bytes)\n", plugin_output_length);
+		}
 		printf("\n");
-	        }
+	}
 
 	if(result!=OK || show_help==TRUE){
 		printf("Usage: %s -H <host_address> [-p port] [-to to_sec] [-d delim] [-c config_file]\n",argv[0]);
