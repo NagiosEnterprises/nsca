@@ -83,6 +83,21 @@ int main(int argc, char **argv){
 	/* process command-line arguments */
 	result=process_arguments(argc,argv);
 
+	/* read the config file */
+	result=read_config_file(config_file);
+
+	/* exit if there are errors... */
+	if(result==ERROR){
+		fprintf(stderr, "Error: Config file '%s' contained errors...\n",config_file);
+		do_exit(STATE_CRITICAL);
+	}
+
+	/* set output length depending on 2.7/2.9 mode */
+	if(legacy_2_7_mode){
+		plugin_output_length=OLD_PLUGINOUTPUT_LENGTH;
+		sizeof_send_packet = sizeof(send_packet) - (MAX_PLUGINOUTPUT_LENGTH - plugin_output_length);
+	}
+
 	if(result!=OK || show_help==TRUE || show_license==TRUE || show_version==TRUE){
 
 		if(result!=OK)
@@ -97,10 +112,13 @@ int main(int argc, char **argv){
 		printf("AVAILABLE");
 #else
 		printf("NOT AVAILABLE");
-#endif		
+#endif
 		printf("\n");
+		if(legacy_2_7_mode){
+			printf("Running in compatibility mode (server < V2.9, legacy plugin output length is %d bytes)\n", plugin_output_length);
+		}
 		printf("\n");
-	        }
+	}
 
 	if(result!=OK || show_help==TRUE){
 		printf("Usage: %s -H <host_address> [-p port] [-to to_sec] [-d delim] [-c config_file]\n",argv[0]);
@@ -130,29 +148,13 @@ int main(int argc, char **argv){
 		printf("<host_name>[tab]<return_code>[tab]<plugin_output>[newline]\n\n");
 		printf("When submitting multiple simultaneous results, separate each set with the ETB\n");
                 printf("character (^W or 0x17)\n");
-	        }
+	}
 
 	if(show_license==TRUE)
 		display_license();
 
         if(result!=OK || show_help==TRUE || show_license==TRUE || show_version==TRUE)
 		do_exit(STATE_UNKNOWN);
-
-
-
-	/* read the config file */
-	result=read_config_file(config_file);
-	if(legacy_2_7_mode){
-		plugin_output_length=OLD_PLUGINOUTPUT_LENGTH;
-		sizeof_send_packet = sizeof(send_packet) - (MAX_PLUGINOUTPUT_LENGTH - plugin_output_length);
-		// printf("Running in compatibility mode (server < V2.9, legacy plugin output length is %d bytes)\n", plugin_output_length);
-	}
-
-	/* exit if there are errors... */
-	if(result==ERROR){
-		fprintf(stderr, "Error: Config file '%s' contained errors...\n",config_file);
-		do_exit(STATE_CRITICAL);
-		}
 
 	/* generate the CRC 32 table */
 	generate_crc32_table();
@@ -180,7 +182,7 @@ int main(int argc, char **argv){
 	if(result!=STATE_OK){
 		fprintf(stderr, "Error: Could not connect to host %s on port %d\n",server_name,server_port);
 		do_exit(STATE_CRITICAL);
-	        }
+	}
 
 #ifdef DEBUG
 	printf("Connected okay...\n");
@@ -192,7 +194,7 @@ int main(int argc, char **argv){
 		fprintf(stderr, "Error: Could not read init packet from server\n");
 		close(sd);
 		do_exit(STATE_CRITICAL);
-	        }
+	}
 
 #ifdef DEBUG
 	printf("Got init packet from server\n");
@@ -203,7 +205,7 @@ int main(int argc, char **argv){
 		fprintf(stderr, "Error: Failed to initialize encryption libraries for method %d\n",encryption_method);
 		close(sd);
 		do_exit(STATE_CRITICAL);
-	        }
+	}
 
 #ifdef DEBUG
 	printf("Initialized encryption routines\n");
@@ -217,13 +219,13 @@ int main(int argc, char **argv){
 		int c = getc(stdin);
 		if (c == -1){
 			break;
-			}
+		}
 		int pos = 0;
 		while (c != 23){
 			if (c == -1){	// in case we don't terminate properly
 					// or are in single-input mode.
 				break;
-				}
+			}
 			input_buffer[pos] = c;
 			c = getc(stdin);
 			pos++;
@@ -231,7 +233,7 @@ int main(int argc, char **argv){
 				printf("Warning: packet[%d] truncated to %d bytes.\n",total_packets, MAX_INPUT_BUFFER);
 				break;
 			}
-			}
+		}
 		input_buffer[pos] = 0;
 		strip(input_buffer);
 
@@ -255,7 +257,7 @@ int main(int argc, char **argv){
 
 		/* get the plugin output - if NULL, this is a host check result */
 		ptr4=strtok(NULL,"\x0");
-		
+
 		strncpy(host_name,ptr1,sizeof(host_name)-1);
 		host_name[sizeof(host_name)-1]='\x0';
 		if(ptr4==NULL){
@@ -308,15 +310,15 @@ int main(int argc, char **argv){
 			fprintf(stderr, "Error: Could not send data to host\n");
 			close(sd);
 			do_exit(STATE_UNKNOWN);
-	                }
+		}
 
 		/* for some reason we didn't send all the bytes we were supposed to */
 		else if(bytes_to_send<sizeof_send_packet){
 			printf("Warning: Sent only %d of %d bytes to host\n",rc,sizeof_send_packet);
 			close(sd);
 			return STATE_UNKNOWN;
-		        }
-	        }
+		}
+	}
 
 #ifdef DEBUG
 	printf("Done sending data\n");
@@ -332,7 +334,7 @@ int main(int argc, char **argv){
 
 	/* no compiler complaints here... */
 	return STATE_OK;
-        }
+}
 
 
 
@@ -351,49 +353,49 @@ static void do_exit(int return_code){
 
 	/*** CLEAR SENSITIVE INFO FROM MEMORY ***/
 
-        /* overwrite password */
-        clear_buffer(password,sizeof(password));
+	/* overwrite password */
+	clear_buffer(password,sizeof(password));
 
 	/* disguise decryption method */
 	encryption_method=-1;
 
-        exit(return_code);
-        }
+	exit(return_code);
+}
 
 
 
 /* reads initialization packet (containing IV and timestamp) from server */
 int read_init_packet(int sock){
-        int rc;
-        init_packet receive_packet;
-        int bytes_to_recv;
+	int rc;
+	init_packet receive_packet;
+	int bytes_to_recv;
 
-        /* clear the IV and timestamp */
-        bzero(&received_iv,TRANSMITTED_IV_SIZE);
-        packet_timestamp=(time_t)0;
+	/* clear the IV and timestamp */
+	bzero(&received_iv,TRANSMITTED_IV_SIZE);
+	packet_timestamp=(time_t)0;
 
-        /* get the init packet from the server */
-        bytes_to_recv=sizeof(receive_packet);
-        rc=recvall(sock,(char *)&receive_packet,&bytes_to_recv,socket_timeout);
+	/* get the init packet from the server */
+	bytes_to_recv=sizeof(receive_packet);
+	rc=recvall(sock,(char *)&receive_packet,&bytes_to_recv,socket_timeout);
 
-        /* recv() error or server disconnect */
-        if(rc<=0){
-                fprintf(stderr, "Error: Server closed connection before init packet was received\n");
-                return ERROR;
-                }
+	/* recv() error or server disconnect */
+	if(rc<=0){
+		fprintf(stderr, "Error: Server closed connection before init packet was received\n");
+		return ERROR;
+	}
 
-        /* we couldn't read the correct amount of data, so bail out */
-        else if(bytes_to_recv!=sizeof(receive_packet)){
-                fprintf(stderr, "Error: Init packet from server was too short (%d bytes received, %d expected)\n",bytes_to_recv,sizeof(receive_packet));
-                return ERROR;
-                }
+	/* we couldn't read the correct amount of data, so bail out */
+	else if(bytes_to_recv!=sizeof(receive_packet)){
+		fprintf(stderr, "Error: Init packet from server was too short (%d bytes received, %d expected)\n",bytes_to_recv,sizeof(receive_packet));
+		return ERROR;
+	}
 
-        /* transfer the IV and timestamp */
-        memcpy(&received_iv,&receive_packet.iv[0],TRANSMITTED_IV_SIZE);
-        packet_timestamp=(time_t)ntohl(receive_packet.timestamp);
+	/* transfer the IV and timestamp */
+	memcpy(&received_iv,&receive_packet.iv[0],TRANSMITTED_IV_SIZE);
+	packet_timestamp=(time_t)ntohl(receive_packet.timestamp);
 
-        return OK;
-        }
+	return OK;
+}
 
 
 
@@ -405,7 +407,7 @@ int process_arguments(int argc, char **argv){
 	if(argc<2){
 		show_help=TRUE;
 		return OK;
-	        }
+	}
 
 	/* support old command-line syntax (host name first argument) */
 	strncpy(server_name,argv[1],sizeof(server_name)-1);
@@ -432,7 +434,7 @@ int process_arguments(int argc, char **argv){
 				strncpy(server_name,argv[x],sizeof(server_name));
 				server_name[sizeof(server_name)-1]='\x0';
 				x++;
-			        }
+			}
 			else
 				return ERROR;
 		        }
@@ -442,10 +444,10 @@ int process_arguments(int argc, char **argv){
 			if(x<argc){
 				server_port=atoi(argv[x]);
 				x++;
-			        }
+			}
 			else
 				return ERROR;
-		        }
+		}
 
 		/* timeout when connecting */
 		else if(!strcmp(argv[x-1],"-to")){
@@ -454,10 +456,10 @@ int process_arguments(int argc, char **argv){
 				if(socket_timeout<=0)
 					return ERROR;
 				x++;
-			        }
+			}
 			else
 				return ERROR;
-		        }
+		}
 
 		/* config file */
 		else if(!strcmp(argv[x-1],"-c")){
@@ -465,10 +467,10 @@ int process_arguments(int argc, char **argv){
 				snprintf(config_file,sizeof(config_file),"%s",argv[x]);
 				config_file[sizeof(config_file)-1]='\x0';
 				x++;
-			        }
+			}
 			else
 				return ERROR;
-		        }
+		}
 
 		/* delimiter to use when parsing input */
 		else if(!strcmp(argv[x-1],"-d")){
@@ -476,17 +478,17 @@ int process_arguments(int argc, char **argv){
 				snprintf(delimiter,sizeof(delimiter),"%s",argv[x]);
 				delimiter[sizeof(delimiter)-1]='\x0';
 				x++;
-			        }
+			}
 			else
 				return ERROR;
-		        }
+		}
 
 		else if(x>2)
 			return ERROR;
-	        }
+	}
 
 	return OK;
-        }
+}
 
 
 
@@ -497,7 +499,7 @@ void alarm_handler(int sig){
 	write(STDOUT_FILENO, msg, sizeof(msg) - 1);
 
 	do_exit(STATE_CRITICAL);
-        }
+}
 
 
 
@@ -518,7 +520,7 @@ int read_config_file(char *filename){
 	if(fp==NULL){
 		printf("Could not open config file '%s' for reading.\n",filename);
 		return ERROR;
-	        }	
+	}	
 
 	line=0;
 	while(fgets(input_buffer,MAX_INPUT_BUFFER-1,fp)){
@@ -540,7 +542,7 @@ int read_config_file(char *filename){
 			printf("No variable name specified in config file '%s' - Line %d\n",filename,line);
 
 			return ERROR;
-		        }
+		}
 
 		/* get the variable value */
 		varvalue=strtok(NULL,"\n");
@@ -549,7 +551,7 @@ int read_config_file(char *filename){
 			printf("No variable value specified in config file '%s' - Line %d\n",filename,line);
 
 			return ERROR;
-		        }
+		}
 
 		if(strstr(input_buffer,"password")){
 			if(strlen(varvalue)>sizeof(password)-1){
@@ -557,10 +559,10 @@ int read_config_file(char *filename){
 				printf("Password is too long in config file '%s' - Line %d\n",filename,line);
 
 				return ERROR;
-			        }
+			}
 			strncpy(password,varvalue,sizeof(password));
 			password[sizeof(password)-1]='\x0';
-		        }
+		}
 
 		else if(strstr(input_buffer,"encryption_method")){
 
@@ -623,25 +625,27 @@ int read_config_file(char *filename){
 					printf("Client was not compiled with mcrypt library, so encryption is unavailable.\n");
 #endif
 				return ERROR;
-			        }
-		        }
-		else if(strstr(input_buffer,"legacy_2_7_mode")){
-			if( strncmp(input_buffer, "true", 4) || strncmp(input_buffer, "yes", 3) ){
-				legacy_2_7_mode=TRUE;
 			}
+		}
+		else if(strstr(input_buffer,"legacy_2_7_mode")){
+			if( strstr(varvalue,"true")  || strstr(varvalue,"yes") ){
+				legacy_2_7_mode=TRUE;
+			} else if( strstr(varvalue,"false") || strstr(varvalue,"no") ){
+				legacy_2_7_mode=FALSE;
+				}
 		}
 		else{
 			printf("Unknown option specified in config file '%s' - Line %d\n",filename,line);
 
 			return ERROR;
-		        }
+		}
 
-	        }
+	}
 
 
 	/* close the config file */
 	fclose(fp);
 
 	return OK;
-	}
+}
 
