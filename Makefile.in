@@ -9,7 +9,7 @@
 SRC_BASE=./src/
 SRC_INCLUDE=./include/
 
-all:	
+all:
 	cd $(SRC_BASE); $(MAKE) $@ ; cd ..
 
 	@echo ""

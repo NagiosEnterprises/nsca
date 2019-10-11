@@ -57,7 +57,7 @@ pkg: $(PKG_FILE)
 
 all: pkg
 
-clean: 
+clean:
 	rm -rf build package
 	rm -rf $(PKGDIR)/$(PKG_NAME)
 	rm -f $(PKGDIR)/prototype $(PKGDIR)/pkginfo

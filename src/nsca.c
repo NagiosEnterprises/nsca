@@ -11,9 +11,9 @@
  *
  * Description:
  *
- * This program is designed to run as a daemon on the main Nagios machine 
+ * This program is designed to run as a daemon on the main Nagios machine
  * and accept service check results from remote hosts.
- * 
+ *
  ******************************************************************************/
 
 #define _GNU_SOURCE
@@ -71,7 +71,7 @@ int     maxpfds=0;
 int     nrhand=0;
 int     nwhand=0;
 int     npfds=0;
-	
+
 #ifdef HAVE_LIBWRAP
 int     allow_severity=LOG_INFO;
 int     deny_severity=LOG_WARNING;
@@ -108,7 +108,7 @@ int main(int argc, char **argv){
                 printf("AVAILABLE");
 #else
                 printf("NOT AVAILABLE");
-#endif          
+#endif
                 printf("\n");
 #ifdef HAVE_LIBWRAP
 		printf("TCP Wrappers Available\n");
@@ -131,7 +131,7 @@ int main(int argc, char **argv){
                 printf("This program is designed to accept passive check results from\n");
                 printf("remote hosts that use the send_nsca utility.  Can run as a service\n");
                 printf("under inetd or xinetd (read the docs for info on this), or as a\n");
-                printf("standalone daemon or forground process.\n");
+                printf("standalone daemon or foreground process.\n");
                 printf("\n");
                 }
 
@@ -145,7 +145,7 @@ int main(int argc, char **argv){
         /* open a connection to the syslog facility */
 	/* facility may be overridden later */
 	get_log_facility(NSCA_LOG_FACILITY);
-        openlog("nsca",LOG_PID|LOG_NDELAY,log_facility); 
+        openlog("nsca",LOG_PID|LOG_NDELAY,log_facility);
 
 	/* make sure the config file uses an absolute path */
 	if(config_file[0]!='/'){
@@ -168,7 +168,7 @@ int main(int argc, char **argv){
 	        }
 
 	/* read the config file */
-        result=read_config_file(config_file);   
+        result=read_config_file(config_file);
 
         /* exit if there are errors... */
         if(result==ERROR)
@@ -241,7 +241,7 @@ int main(int argc, char **argv){
 			/* write pid file */
 			if(write_pid_file(uid,gid)==ERROR)
 				return STATE_CRITICAL;
-		
+
 			/* chroot if configured */
 			do_chroot();
 
@@ -264,7 +264,7 @@ int main(int argc, char **argv){
 					free_memory();
 
 					/* re-read the config file */
-					result=read_config_file(config_file);	
+					result=read_config_file(config_file);
 
 					/* exit if there are errors... */
 					if(result==ERROR){
@@ -272,7 +272,7 @@ int main(int argc, char **argv){
 						break;
 						}
 					}
-	
+
 				}while(sigrestart==TRUE && sigshutdown==FALSE);
 
 			/* remove pid file */
@@ -285,7 +285,7 @@ int main(int argc, char **argv){
         default:
                 break;
 	        }
-	
+
 	/* we are now running in daemon mode, or the connection handed over by inetd has been completed, so the parent process exits */
         do_exit(STATE_OK);
 
@@ -474,13 +474,13 @@ static int read_config_file(char *filename){
 		else if(strstr(input_buffer,"debug")){
                         if(atoi(varvalue)>0)
                                 debug=TRUE;
-                        else 
+                        else
                                 debug=FALSE;
                         }
 		else if(strstr(input_buffer,"aggregate_writes")){
                         if(atoi(varvalue)>0)
                                 aggregate_writes=TRUE;
-                        else 
+                        else
                                 aggregate_writes=FALSE;
                         }
                     else if(strstr(input_buffer,"check_result_path")){
@@ -489,7 +489,7 @@ static int read_config_file(char *filename){
                                     return ERROR;
                                     }
                             check_result_path=strdup(varvalue);
-                            
+
                             int checkresult_test_fd=-1;
                             char *checkresult_test=NULL;
                             asprintf(&checkresult_test,"%s/nsca.test.%i",check_result_path,getpid());
@@ -507,7 +507,7 @@ static int read_config_file(char *filename){
 		else if(strstr(input_buffer,"append_to_file")){
                         if(atoi(varvalue)>0)
                                 append_to_file=TRUE;
-                        else 
+                        else
                                 append_to_file=FALSE;
                         }
 		else if(!strcmp(varname,"max_packet_age")){
@@ -534,7 +534,7 @@ static int read_config_file(char *filename){
 			if((get_log_facility(varvalue))==OK){
 				/* re-open log using new facility */
 				closelog();
-				openlog("nsca",LOG_PID|LOG_NDELAY,log_facility); 
+				openlog("nsca",LOG_PID|LOG_NDELAY,log_facility);
 				}
 			else
 				syslog(LOG_WARNING,"Invalid log_facility specified in config file '%s' - Line %d\n",filename,line);
@@ -764,7 +764,7 @@ static void handle_events(void){
         void (*handler)(int, void *);
         void *data;
         int i, hand;
-        
+
 	/* bail out if necessary */
 	if(sigrestart==TRUE || sigshutdown==TRUE)
 		return;
@@ -1235,7 +1235,7 @@ static void handle_connection_read(int sock, void *data){
         /* service description */
         strncpy(svc_description,receive_packet.svc_description,sizeof(svc_description)-1);
         svc_description[sizeof(svc_description)-1]='\0';
-        
+
         /* plugin output */
         strncpy(plugin_output,receive_packet.plugin_output,plugin_length-1);
         plugin_output[plugin_length-1]='\0';
@@ -1290,7 +1290,7 @@ static int write_checkresult_file(char *host_name, char *svc_description, int re
                 syslog(LOG_ERR,"Unable to open and write checkresult file '%s', failing back to PIPE",checkresult_file);
                 return write_check_result(host_name,svc_description,return_code,plugin_output,check_time);
                 }
-        
+
 	if(debug==TRUE)
 		syslog(LOG_ERR,"checkresult file '%s' open for write.",checkresult_file);
 
@@ -1348,7 +1348,7 @@ static int write_check_result(char *host_name, char *svc_description, int return
                  * the middle of our commands.
                  */
                 fflush(command_file_fp);
-        
+
         return OK;
         }
 
@@ -1500,7 +1500,7 @@ static int write_pid_file(uid_t usr, gid_t grp){
 				return ERROR;
 			        }
 		        }
-	        } 
+	        }
 
 	/* write new pid file */
 	if((fd=open(pid_file,O_WRONLY | O_CREAT,0644))>=0){
@@ -1544,7 +1544,7 @@ static int remove_pid_file(void){
 /* get user information */
 static int get_user_info(const char *user, uid_t *uid){
 	const struct passwd *pw=NULL;
-	
+
 	if(user!=NULL){
 		/* see if this is a user name */
 		if(strspn(user,"0123456789")<strlen(user)){
@@ -1560,7 +1560,7 @@ static int get_user_info(const char *user, uid_t *uid){
 		else
 			*uid=(uid_t)atoi(user);
 
-	        } 
+	        }
 	else
 		*uid=geteuid();
 
@@ -1572,7 +1572,7 @@ static int get_user_info(const char *user, uid_t *uid){
 /* get group information */
 static int get_group_info(const char *group, gid_t *gid){
 	const struct group *grp=NULL;
-	
+
 	/* get group ID */
 	if(group!=NULL){
 		/* see if this is a group name */
@@ -1588,7 +1588,7 @@ static int get_group_info(const char *group, gid_t *gid){
 		/* else we were passed the GID */
 		else
 			*gid=(gid_t)atoi(group);
-	        } 
+	        }
 	else
 		*gid=getegid();
 

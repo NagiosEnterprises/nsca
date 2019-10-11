@@ -47,7 +47,7 @@ foreach my $type qw(--single --daemon) {
 		my $c = clone($data);
 		push @$c, [ "host$i", 2, "Some unique data: ".rand() ];
 		push @$expected, @$c;
-		$Fork->schedule( 
+		$Fork->schedule(
 			run_on_start => sub { $nsca->send($c) },
 			);
 	}

@@ -1,7 +1,7 @@
 NSCA - Nagios Service Check Acceptor
 ====================================
 
-TL;DR? You can jump straight to [Compiling](#compiling) and 
+TL;DR? You can jump straight to [Compiling](#compiling) and
 [Installing](#installing).
 
 The purpose of this addon is to allow you to send service check
@@ -23,17 +23,17 @@ There are two pieces to this addon:
    data from a remote client, the daemon will make a
    **very** basic attempt at validating the data it has
    received from the client. This is done by decrypting
-   the data with the password stored in the `nsca.cfg` 
+   the data with the password stored in the `nsca.cfg`
    file. If the decrypted data looks okay (i.e. it was
    originally encrypted by the `send_ncsa` program using
    the same password), the daemon will make entries in
    the Nagios external command file telling Nagios
    to process the host or service check result.
 
-   Notes: 
+   Notes:
 
    * The nsca daemon must have sufficient rights
-      to open the Nagios command file for writing.  
+      to open the Nagios command file for writing.
 
    * Also, Nagios will only process passive service check
       results that it finds in the external command file
@@ -85,7 +85,7 @@ Installing
 ----------
 
 The `send_nsca` program and associate config file (`nsca.cfg`) should
-be placed on remote machines that you want to have communicate 
+be placed on remote machines that you want to have communicate
 with the nsca daemon. This means that you may have to compile the
 `send_nsca` program on the remote machine, if its not the same
 OS/architecture as that of the central server.
@@ -137,7 +137,7 @@ of TCP wrappers, you need to do the following things:
 
 
    * `inetd`
-   
+
      If your system uses the `inetd` superserver **WITH** tcpwrappers, add an
      entry to `/etc/inetd.conf` as follows:
 
@@ -166,7 +166,7 @@ of TCP wrappers, you need to do the following things:
          service nsca
          {
            flags           = REUSE
-           socket_type     = stream        
+           socket_type     = stream
            wait            = no
            user            = <user>
            group           = <group>
@@ -225,7 +225,7 @@ Other open-source Nagios software can be found at:
 License Notice
 --------------
 
-This software is released under GPLv2. See the full license at the 
+This software is released under GPLv2. See the full license at the
 [LICENSE](LICENSE.md) file.
 
 Questions?

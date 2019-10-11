@@ -38,7 +38,7 @@
 #undef HAVE_SYSLOG_H
 #undef HAVE_STRDUP
 #undef HAVE_STRSTR
-#undef HAVE_STRTOUL 
+#undef HAVE_STRTOUL
 #undef HAVE_INITGROUPS
 #undef HAVE_LIMITS_H
 #undef HAVE_SYS_RESOURCE_H
@@ -230,12 +230,12 @@ typedef int int32_t;
 #ifdef HAVE_PWD_H
 #include <pwd.h>
 #endif
- 
+
 #undef HAVE_GRP_H
 #ifdef HAVE_GRP_H
 #include <grp.h>
 #endif
- 
+
 #undef HAVE_INTTYPES_H
 #ifdef HAVE_INTTYPES_H
 #include <inttypes.h>

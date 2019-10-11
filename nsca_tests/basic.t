@@ -16,7 +16,7 @@ use Test::More;
 
 plan tests => 2;
 
-my $data = [ 
+my $data = [
 	["hostname", "0", "Plugin output"],
 	["hostname-with-other-bits", "1", "More data to be read"],
 	["hostname.here", "2", "Check that ; are okay to receive"],
