@@ -85,7 +85,7 @@ int my_connect(char *host_name,int port,int *sd,char *proto){
 	result=connect(*sd,aip->ai_addr,aip->ai_addrlen);
 	freeaddrinfo(aip);
 	if(result<0){
-		switch(errno){  
+		switch(errno){
 		case ECONNREFUSED:
 			fprintf(stderr, "Connection refused by host\n");
 			break;
@@ -142,11 +142,11 @@ int my_inet_aton(register const char *cp, struct in_addr *addr){
 			if(isascii((int)c) && isdigit((int)c)){
 				val=(val*base)+(c -'0');
 				c=*++cp;
-			        } 
+			        }
 			else if(base==16 && isascii((int)c) && isxdigit((int)c)){
 				val=(val<<4) | (c+10-(islower((int)c)?'a':'A'));
 				c = *++cp;
-			        } 
+			        }
 			else
 				break;
 		        }
@@ -163,7 +163,7 @@ int my_inet_aton(register const char *cp, struct in_addr *addr){
 				return (0);
 			*pp++=val;
 			c=*++cp;
-		        } 
+		        }
 		else
 			break;
 	        }
@@ -238,7 +238,7 @@ int recvall(int s, char *buf, int *len, int timeout){
 	int n=0;
 	time_t start_time;
 	time_t current_time;
-	
+
 	/* clear the receive buffer */
 	bzero(buf,*len);
 

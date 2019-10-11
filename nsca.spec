@@ -27,21 +27,21 @@ Requires: bash, nagios, libmcrypt, xinetd
 # uncomment this for RedHat Enterprise Linux 3:
 #PreReq: util-linux, sh-utils, shadow-utils, sed, fileutils, mktemp
 # SuSE Linux Enterprise Server 8:
-PreReq: util-linux, sh-utils, shadow, sed, fileutils, mktemp 
+PreReq: util-linux, sh-utils, shadow, sed, fileutils, mktemp
 
 
 %description
-This program is designed to accept passive service check results from 
-clients that use the send_nsca utility and pass them along to the 
-Nagios process by using the external command 
-interface. The program can either be run as a standalone daemon or as 
-a service under inetd. If you have libmcrypt installed on your systems, 
-you can choose from multiple crypto algorithms (DES, 3DES, CAST, xTEA, 
-Twofish, LOKI97, RJINDAEL, SERPENT, GOST, SAFER/SAFER+, etc.) for 
-encrypting the traffic between the client and the server. 
-Encryption is important in this addon, as it prevents unauthorized users 
-from sending bogus check results to Nagios. Read the included SECURITY 
-document for more information. 
+This program is designed to accept passive service check results from
+clients that use the send_nsca utility and pass them along to the
+Nagios process by using the external command
+interface. The program can either be run as a standalone daemon or as
+a service under inetd. If you have libmcrypt installed on your systems,
+you can choose from multiple crypto algorithms (DES, 3DES, CAST, xTEA,
+Twofish, LOKI97, RJINDAEL, SERPENT, GOST, SAFER/SAFER+, etc.) for
+encrypting the traffic between the client and the server.
+Encryption is important in this addon, as it prevents unauthorized users
+from sending bogus check results to Nagios. Read the included SECURITY
+document for more information.
 
 This package provides the core agent running on the Nagios server
 
@@ -51,17 +51,17 @@ Group: Application/System
 Summary: Provides the send_nsca utility running on the Nagios-Client.
 
 %description send
-This program is designed to accept passive service check results from 
-clients that use the send_nsca utility (which is included in this package) 
-and pass them along to the Nagios process by using the external command 
-interface. The program can either be run as a standalone daemon or as 
-a service under inetd. If you have libmcrypt installed on your systems, 
-you can choose from multiple crypto algorithms (DES, 3DES, CAST, xTEA, 
-Twofish, LOKI97, RJINDAEL, SERPENT, GOST, SAFER/SAFER+, etc.) for 
-encrypting the traffic between the client and the server. 
-Encryption is important in this addon, as it prevents unauthorized users 
-from sending bogus check results to Nagios. Read the included SECURITY 
-document for more information. 
+This program is designed to accept passive service check results from
+clients that use the send_nsca utility (which is included in this package)
+and pass them along to the Nagios process by using the external command
+interface. The program can either be run as a standalone daemon or as
+a service under inetd. If you have libmcrypt installed on your systems,
+you can choose from multiple crypto algorithms (DES, 3DES, CAST, xTEA,
+Twofish, LOKI97, RJINDAEL, SERPENT, GOST, SAFER/SAFER+, etc.) for
+encrypting the traffic between the client and the server.
+Encryption is important in this addon, as it prevents unauthorized users
+from sending bogus check results to Nagios. Read the included SECURITY
+document for more information.
 
 This package provides the send_nsca utility running on the client.
 
@@ -71,11 +71,11 @@ This package provides the send_nsca utility running on the client.
 
 %pre
 # Create `nagios' user on the system if necessary
-if id %{nsusr} 
+if id %{nsusr}
 then
 	: # user already exists
 else
-        grep nagios /etc/group &>/dev/null || /usr/sbin/groupadd -r nagios 
+        grep nagios /etc/group &>/dev/null || /usr/sbin/groupadd -r nagios
 
 	/usr/sbin/useradd -r -d /var/log/nagios -s /bin/sh -c "%{nsusr}" -g %{nsgrp} %{nsusr} || \
 		%nnmmsg Unexpected error adding user "%{nsusr}". Aborting install process.
@@ -94,10 +94,10 @@ elif [ -d /sbin/init.d ]; then
 fi
 
 %postun
-/etc/init.d/xinetd restart 
+/etc/init.d/xinetd restart
 
 %post
-/etc/init.d/xinetd restart 
+/etc/init.d/xinetd restart
 
 
 %build
@@ -147,6 +147,6 @@ rm -rf $RPM_BUILD_ROOT
 
 %changelog
 * Wed Jan 28 2004 Falk Höppner <fh at honix de>
-- Create SPEC from nrpe.spec  
+- Create SPEC from nrpe.spec
 - Tested on ia32/ia64 with SLES8/RHEL3
 

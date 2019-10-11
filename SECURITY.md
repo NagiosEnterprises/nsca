@@ -6,7 +6,7 @@ General Security Considerations
 -------------------------------
 Before you proceed with installing the NSCA daemon daemon on your
 monitoring server, there are some security implications that you
-should be aware of.  
+should be aware of.
 
 The main thing you need to be aware of is the fact that malicious
 users could potentially use the NSCA client to send fake service
@@ -20,7 +20,7 @@ is bad for two reasons:
 
 2) Worse, since Nagios can be configured to run event handlers
    for hosts and services, a remote user could indirectly cause
-   Nagios to shut down or restart a service (or do something 
+   Nagios to shut down or restart a service (or do something
    more serious).
 
 Running the NSCA daemon under inetd and making use of TCP wrappers
@@ -43,14 +43,14 @@ to the NSCA daemon.
 While encryption is good because it provides some privacy
 as to the information that is being sent from the client to
 the daemon, the main purpose of the encryption is to provide
-the daemon with a way of authenticating the client and 
+the daemon with a way of authenticating the client and
 seeing if they're authorized to provide check results.
 
 Basically the daemon says:
 
    "Hey, if you (the client) used the same password and
     algorithm to encrypt the data as I use to decrypt it,
-    I'll accept the check results you're providing me..." 
+    I'll accept the check results you're providing me..."
 
 
 
@@ -70,9 +70,9 @@ Authentication of checks results works as follows:
    its about to send off and stores that value in the packet
    body.
 
-4) The entire packet body (including the service checking 
+4) The entire packet body (including the service checking
    information, as well as the CRC-32 value) is encrypted
-   using the password stored in the send_nsca.cfg file.  
+   using the password stored in the send_nsca.cfg file.
    Encryption of the packet is done using the algorithm
    specified by the encryption_method variable in the
    send_nsca.cfg file.
@@ -133,7 +133,7 @@ Preventing "Replay" Attacks
 
 The methods described above help ensure that the data the
 NSCA daemon receives is "valid" data - i.e., it was
-encrypted with the appropriate passphrase and crypto 
+encrypted with the appropriate passphrase and crypto
 algorithm.  One problem that remains is the fact that
 someone could capture the data packets being sent from the
 client to the daemon and send them back to the daemon at
@@ -166,7 +166,7 @@ Caveats
    passwords or passphrases are better than shorter ones.
    Insert common sense here.
 
-3) It is assumed that you keep tight security on the 
+3) It is assumed that you keep tight security on the
    send_nsca.cfg and nsca.cfg config files, as they contain
    both the algorithm and password used to encrypt/decrypt
    the packets sent between the client and daemon.
@@ -176,6 +176,6 @@ Questions?
 ----------
 
 If you have any questions, comments, or suggestions, feel free to contact us
-via the [support forum](http://support.nagios.com/forum/) or through our 
+via the [support forum](http://support.nagios.com/forum/) or through our
 [Github page](https://github.com/NagiosEnterprises/nsca/)
 

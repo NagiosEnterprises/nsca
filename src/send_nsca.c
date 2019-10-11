@@ -159,10 +159,10 @@ int main(int argc, char **argv){
 
 #ifdef DEBUG
 	printf("Delimiter: 0x%02hhx Set Delimiter: 0x%02hhx \n", delimiter[0], block_delimiter[0]);
-#endif   
+#endif
 
 	/* read the config file */
-	result=read_config_file(config_file);	
+	result=read_config_file(config_file);
 
 	/* exit if there are errors... */
 	if(result==ERROR){
@@ -522,7 +522,7 @@ int process_arguments(int argc, char **argv){
 				    snprintf(block_delimiter,sizeof(block_delimiter),"%s",argv[x]);
 				    block_delimiter[sizeof(block_delimiter)-1]='\x0';
 			        }else block_delimiter[0]= (char) d;
-				x++; 
+				x++;
 				}
 			else {
 				return ERROR;
@@ -566,7 +566,7 @@ int read_config_file(char *filename){
 	if(fp==NULL){
 		printf("Could not open config file '%s' for reading.\n",filename);
 		return ERROR;
-	}	
+	}
 
 	line=0;
 	while(fgets(input_buffer,MAX_INPUT_BUFFER-1,fp)){

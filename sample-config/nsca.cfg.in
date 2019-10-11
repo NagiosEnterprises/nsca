@@ -1,7 +1,7 @@
 ####################################################
-# Sample NSCA Daemon Config File 
+# Sample NSCA Daemon Config File
 # Written by: Ethan Galstad (nagios@nagios.org)
-# 
+#
 # Last Modified: 11-23-2007
 ####################################################
 
@@ -45,9 +45,9 @@ server_port=@nsca_port@
 
 
 # NSCA USER
-# This determines the effective user that the NSCA daemon should run as.  
+# This determines the effective user that the NSCA daemon should run as.
 # You can either supply a username or a UID.
-# 
+#
 # NOTE: This option is ignored if NSCA is running under either inetd or xinetd
 
 nsca_user=@nsca_user@
@@ -55,9 +55,9 @@ nsca_user=@nsca_user@
 
 
 # NSCA GROUP
-# This determines the effective group that the NSCA daemon should run as.  
+# This determines the effective group that the NSCA daemon should run as.
 # You can either supply a group name or a GID.
-# 
+#
 # NOTE: This option is ignored if NSCA is running under either inetd or xinetd
 
 nsca_group=@nsca_grp@
@@ -68,8 +68,8 @@ nsca_group=@nsca_grp@
 # If specified, determines a directory into which the nsca daemon
 # will perform a chroot(2) operation before dropping its privileges.
 # for the security conscious this can add a layer of protection in
-# the event that the nagios daemon is compromised.  
-# 
+# the event that the nagios daemon is compromised.
+#
 # NOTE: if you specify this option, the command file will be opened
 #       relative to this directory.
 
@@ -79,7 +79,7 @@ nsca_group=@nsca_grp@
 
 # DEBUGGING OPTION
 # This option determines whether or not debugging
-# messages are logged to the syslog facility. 
+# messages are logged to the syslog facility.
 # Values: 0 = debugging off, 1 = debugging on
 
 debug=0

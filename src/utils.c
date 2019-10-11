@@ -232,7 +232,7 @@ int encrypt_init(char *password,int encryption_method,char *received_iv,struct c
                 strncpy(CI->key,password,CI->keysize);
         else
                 strncpy(CI->key,password,strlen(password));
-        
+
         /* initialize encryption buffers */
         mcrypt_generic_init(CI->td,CI->key,CI->keysize,CI->IV);
         mcrypt_initialized=TRUE;
@@ -276,7 +276,7 @@ static void generate_transmitted_iv(char *transmitted_iv){
         int seed=0;
 
         /*********************************************************/
-        /* fill IV buffer with data that's as random as possible */ 
+        /* fill IV buffer with data that's as random as possible */
         /*********************************************************/
 
         /* try to get seed value from /dev/urandom, as its a better source of entropy */

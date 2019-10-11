@@ -1,14 +1,14 @@
 ####################################################
-# Sample NSCA Client Config File 
+# Sample NSCA Client Config File
 # Written by: Ethan Galstad (nagios@nagios.org)
-# 
+#
 # Last Modified: 02-21-2002
 ####################################################
 
 
 # ENCRYPTION PASSWORD
 # This is the password/passphrase that should be used to encrypt the
-# outgoing packets.  Note that the nsca daemon must use the same 
+# outgoing packets.  Note that the nsca daemon must use the same
 # password when decrypting the packet!
 # IMPORTANT: You don't want all the users on this system to be able
 # to read the password you specify here, so make sure to set
