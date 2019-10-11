@@ -133,8 +133,7 @@ of TCP wrappers, you need to do the following things:
    Notes:
 
    If you run nsca under `inetd` or `xinetd`, the `server_port`
-   and `allowed_hosts` variables in the nrpe configuration file are
-   ignored.
+   variable in the nsca configuration file is ignored.
 
 
    * `inetd`

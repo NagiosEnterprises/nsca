@@ -9,7 +9,7 @@ monitoring server, there are some security implications that you
 should be aware of.  
 
 The main thing you need to be aware of is the fact that malicious
-users could potentionally use the NSCA client to send fake service
+users could potentially use the NSCA client to send fake service
 and host check results to the NSCA daemon (and thus Nagios).  This
 is bad for two reasons:
 
@@ -79,7 +79,7 @@ Authentication of checks results works as follows:
 
 ... packet gets sent over the wire...
 
-5) The NSCA daemon recieves the packet and decrypts it using
+5) The NSCA daemon receives the packet and decrypts it using
    the password stored in the nsca.cfg file.  Decryption of
    the packet is done using the algorithm specified by the
    decryption_method variable in the nsca.cfg file.
@@ -114,7 +114,7 @@ What This Means
    once the packet is decrypted.
 
 3) If someone tries to dabble with the contents of the
-   packet as it is being tranferred between the client and
+   packet as it is being transferred between the client and
    the server, the daemon will likely discard the packet, as
    the CRC-32 value of the packet will likely be invalid.
 
@@ -160,7 +160,7 @@ Caveats
    NSCA clients and NSCA daemon.
 
 2) These assumptions rely on the fact that you're using a
-   resonable secure password to encrypt/decrypt the data.
+   reasonable secure password to encrypt/decrypt the data.
    Depending on the crypto algorithm used, this could mean
    length and/or randomness.  As a general rule, longer
    passwords or passphrases are better than shorter ones.

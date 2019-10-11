@@ -9,7 +9,7 @@
  *
  * Description:
  *
- * This file contains common network functions used in nrpe and check_nrpe.
+ * This file contains common network functions used in ncpa and send_nsca.
  *
  * License Information:
  *
@@ -31,8 +31,9 @@
 
 #include "../include/common.h"
 #include "../include/netutils.h"
-
-
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
 
 /* opens a connection to a remote host/tcp port */
 int my_tcp_connect(char *host_name,int port,int *sd){
@@ -50,52 +51,52 @@ int my_connect(char *host_name,int port,int *sd,char *proto){
 	struct hostent *hp;
 	struct protoent *ptrp;
 	int result;
-
-	bzero((char *)&servaddr,sizeof(servaddr));
-	servaddr.sin_family=AF_INET;
-	servaddr.sin_port=htons(port);
-
-	/* try to bypass using a DNS lookup if this is just an IP address */
-	if(!my_inet_aton(host_name,&servaddr.sin_addr)){
-
-		/* else do a DNS lookup */
-		hp=gethostbyname((const char *)host_name);
-		if(hp==NULL){
-			printf("Invalid host name '%s'\n",host_name);
-			return STATE_UNKNOWN;
-		        }
-
-		memcpy(&servaddr.sin_addr,hp->h_addr,hp->h_length);
-	        }
+	struct addrinfo *aip = 0;
+	struct addrinfo hints = {
+	  (AI_V4MAPPED | AI_ADDRCONFIG),
+	  AF_UNSPEC,
+	};
+	char server_port[32];
 
 	/* map transport protocol name to protocol number */
 	if(((ptrp=getprotobyname(proto)))==NULL){
-		printf("Cannot map \"%s\" to protocol number\n",proto);
+		fprintf(stderr, "Cannot map \"%s\" to protocol number\n",proto);
 		return STATE_UNKNOWN;
 	        }
 
+	hints.ai_protocol = ptrp->p_proto;
+	hints.ai_socktype = (!strcmp(proto,"udp"))?SOCK_DGRAM:SOCK_STREAM;
+	sprintf(server_port,"%d",port);
+	result = getaddrinfo(host_name,server_port,&hints,&aip);
+	if (result < 0) {
+		fprintf(stderr, "Host name lookup failed: '%s'\n",host_name);
+		return STATE_UNKNOWN;
+		}
+
 	/* create a socket */
-	*sd=socket(PF_INET,(!strcmp(proto,"udp"))?SOCK_DGRAM:SOCK_STREAM,ptrp->p_proto);
+	*sd=socket(aip->ai_family,aip->ai_socktype,aip->ai_protocol);
 	if(*sd<0){
-		printf("Socket creation failed\n");
+		fprintf(stderr, "Socket creation failed\n");
+		freeaddrinfo(aip);
 		return STATE_UNKNOWN;
 	        }
 
 	/* open a connection */
-	result=connect(*sd,(struct sockaddr *)&servaddr,sizeof(servaddr));
+	result=connect(*sd,aip->ai_addr,aip->ai_addrlen);
+	freeaddrinfo(aip);
 	if(result<0){
 		switch(errno){  
 		case ECONNREFUSED:
-			printf("Connection refused by host\n");
+			fprintf(stderr, "Connection refused by host\n");
 			break;
 		case ETIMEDOUT:
-			printf("Timeout while attempting connection\n");
+			fprintf(stderr, "Timeout while attempting connection\n");
 			break;
 		case ENETUNREACH:
-			printf("Network is unreachable\n");
+			fprintf(stderr, "Network is unreachable\n");
 			break;
 		default:
-			printf("Connection refused or timed out\n");
+			fprintf(stderr, "Connection refused or timed out\n");
 		        }
 
 		return STATE_CRITICAL;
@@ -107,7 +108,7 @@ int my_connect(char *host_name,int port,int *sd,char *proto){
 
 
 /* This code was taken from Fyodor's nmap utility, which was originally taken from
-   the GLIBC 2.0.6 libraries because Solaris doesn't contain the inet_aton() funtion. */
+   the GLIBC 2.0.6 libraries because Solaris doesn't contain the inet_aton() function. */
 int my_inet_aton(register const char *cp, struct in_addr *addr){
 	register unsigned int val;	/* changed from u_long --david */
 	register int base, n;

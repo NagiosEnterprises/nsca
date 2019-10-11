@@ -24,7 +24,7 @@
 
 
 static int server_port=DEFAULT_SERVER_PORT;
-static char server_address[16]="0.0.0.0";
+static char server_address[64]="";
 static int socket_timeout=DEFAULT_SOCKET_TIMEOUT;
 static int log_facility=LOG_DAEMON;
 
@@ -34,6 +34,7 @@ static char command_file[MAX_INPUT_BUFFER]="";
 static char password[MAX_INPUT_BUFFER]="";
 
 static enum { OPTIONS_ERROR, SINGLE_PROCESS_DAEMON, MULTI_PROCESS_DAEMON, INETD } mode=SINGLE_PROCESS_DAEMON;
+static int foreground=FALSE;
 static int debug=FALSE;
 static int aggregate_writes=FALSE;
 static int decryption_method=ENCRYPT_XOR;
@@ -93,7 +94,7 @@ int main(int argc, char **argv){
         if(result!=OK || show_help==TRUE || show_license==TRUE || show_version==TRUE){
 
 		if(result!=OK)
-			printf("Incorrect command line arguments supplied\n");
+			fprintf(stderr, "Incorrect command line arguments supplied\n");
                 printf("\n");
                 printf("NSCA - Nagios Service Check Acceptor\n");
 		printf("Copyright (c) 2009 Nagios Core Development Team and Community Contributors\n");
@@ -115,10 +116,11 @@ int main(int argc, char **argv){
 	        }
 
 	if(result!=OK || show_help==TRUE){
-                printf("Usage: %s -c <config_file> [mode]\n",argv[0]);
+                printf("Usage: %s [-f] -c <config_file> [mode]\n",argv[0]);
                 printf("\n");
                 printf("Options:\n");
 		printf(" <config_file> = Name of config file to use\n");
+		printf(" -f            = Run in foreground only. Disables fork.\n");
 		printf(" [mode]        = Determines how NSCA should run. Valid modes:\n");
                 printf("   --inetd     = Run as a service under inetd or xinetd\n");
                 printf("   --daemon    = Run as a standalone multi-process daemon\n");
@@ -128,7 +130,7 @@ int main(int argc, char **argv){
                 printf("This program is designed to accept passive check results from\n");
                 printf("remote hosts that use the send_nsca utility.  Can run as a service\n");
                 printf("under inetd or xinetd (read the docs for info on this), or as a\n");
-                printf("standalone daemon.\n");
+                printf("standalone daemon or forground process.\n");
                 printf("\n");
                 }
 
@@ -201,10 +203,10 @@ int main(int argc, char **argv){
 		       V     */
 
                 /* daemonize and start listening for requests... */
-                if(fork()==0){
+                if(foreground || fork()==0){
 
                         /* we're a daemon - set up a new process group */
-                        setsid();
+                        if(!foreground) setsid();
 
 			/* handle signals */
 #ifdef HAVE_SIGACTION
@@ -805,18 +807,63 @@ static void handle_events(void){
 
 /* wait for incoming connection requests */
 static void wait_for_connections(void) {
-        struct sockaddr_in myname;
+        struct addrinfo hints, *ai;
+        char portbuf[16];
+        char *sa;
+        int r;
         int sock=0;
+        int v6ok=0;
         int flag=1;
 
+        /* check to see if we have ipv6 support */
+        if ((sock = socket(AF_INET6, SOCK_STREAM, 0)) >= 0) {
+                close(sock);
+                v6ok=1;
+        }
+
+        sa = server_address[0] ? server_address : NULL;
+#ifndef IPV6_V6ONLY
+        if (sa == NULL)
+                sa = "0.0.0.0";
+#endif
+
+        /* what address should we bind to? */
+        memset(&hints, 0, sizeof(hints));
+        hints.ai_family = AF_UNSPEC;
+        hints.ai_flags = AI_ADDRCONFIG | AI_PASSIVE;
+        hints.ai_socktype = SOCK_STREAM;
+        hints.ai_protocol = IPPROTO_TCP;
+        if (v6ok && sa == NULL) {
+                hints.ai_family = AF_INET6;
+                hints.ai_flags |= AI_V4MAPPED;
+        }
+        snprintf(portbuf, sizeof(portbuf), "%d", server_port);
+        r = getaddrinfo(sa, portbuf, &hints, &ai);
+        if (r != 0) {
+                syslog(LOG_ERR,"Server address %s port %s: %s",
+                                sa ? sa : "<any>", portbuf, gai_strerror(r));
+                do_exit(STATE_CRITICAL);
+        }
+
         /* create a socket for listening */
-        sock=socket(AF_INET,SOCK_STREAM,0);
+        sock=socket(ai->ai_family,ai->ai_socktype,0);
 
         /* exit if we couldn't create the socket */
         if(sock<0){
                 syslog(LOG_ERR,"Network server socket failure (%d: %s)",errno,strerror(errno));
                 do_exit(STATE_CRITICAL);
                 }
+
+#ifdef IPV6_V6ONLY
+        /* serve both v4 and v6 on a single socket ? */
+        if (sa == NULL && ai->ai_family == AF_INET6) {
+                r = 0;
+                if (setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY, &r, sizeof(r)) < 0) {
+                        syslog(LOG_ERR,"Could not set IPV6_V6ONLY=0 option on socket!\n");
+                        do_exit(STATE_CRITICAL);
+                }
+        }
+#endif
 
         /* set the reuse address flag so we don't get errors when restarting */
         flag=1;
@@ -825,24 +872,13 @@ static void wait_for_connections(void) {
                 do_exit(STATE_CRITICAL);
                 }
 
-        myname.sin_family=AF_INET;
-        myname.sin_port=htons(server_port);
-        bzero(&myname.sin_zero,8);
-
-        /* what address should we bind to? */
-        if(!strlen(server_address))
-                myname.sin_addr.s_addr=INADDR_ANY;
-        else if(!my_inet_aton(server_address,&myname.sin_addr)){
-                syslog(LOG_ERR,"Server address is not a valid IP address\n");
-                do_exit(STATE_CRITICAL);
-                }
-
 
         /* bind the address to the Internet socket */
-        if(bind(sock,(struct sockaddr *)&myname,sizeof(myname))<0){
+        if(bind(sock,ai->ai_addr,ai->ai_addrlen)<0){
                 syslog(LOG_ERR,"Network server bind failure (%d: %s)\n",errno,strerror(errno));
                 do_exit(STATE_CRITICAL);
                 }
+        freeaddrinfo(ai);
 
         /* open the socket for listening */
         if(listen(sock,SOMAXCONN)<0){
@@ -854,7 +890,7 @@ static void wait_for_connections(void) {
         syslog(LOG_NOTICE,"Starting up daemon");
 
         if(debug==TRUE){
-                syslog(LOG_DEBUG,"Listening for connections on port %d\n",htons(myname.sin_port));
+                syslog(LOG_DEBUG,"Listening for connections on port %d\n",server_port);
                 }
 
 	/* socket should be non-blocking for mult-process daemon */
@@ -890,9 +926,10 @@ static void wait_for_connections(void) {
 static void accept_connection(int sock, void *unused){
         int new_sd;
         pid_t pid;
-        struct sockaddr addr;
-        struct sockaddr_in *nptr;
+        struct sockaddr_storage addr;
         socklen_t addrlen;
+        char hostbuf[64], portbuf[16];
+        char *h;
         int rc;
 #ifdef HAVE_LIBWRAP
 	struct request_info req;
@@ -973,7 +1010,7 @@ static void accept_connection(int sock, void *unused){
 
         /* find out who just connected... */
         addrlen=sizeof(addr);
-        rc=getpeername(new_sd,&addr,&addrlen);
+        rc=getpeername(new_sd,(struct sockaddr *)&addr,&addrlen);
 
         if(rc<0){
                 /* log error to syslog facility */
@@ -986,11 +1023,15 @@ static void accept_connection(int sock, void *unused){
 		return;
                 }
 
-        nptr=(struct sockaddr_in *)&addr;
-
         /* log info to syslog facility */
-        if(debug==TRUE)
-                syslog(LOG_DEBUG,"Connection from %s port %d",inet_ntoa(nptr->sin_addr),nptr->sin_port);
+        if(debug==TRUE) {
+                getnameinfo((struct sockaddr *)&addr, addrlen,
+                        hostbuf, sizeof(hostbuf),
+                        portbuf, sizeof(portbuf),
+                        NI_NUMERICHOST|NI_NUMERICSERV);
+		h = strncmp(hostbuf, "::ffff:", 7) == 0 ? hostbuf + 7 : hostbuf;
+                syslog(LOG_DEBUG,"Connection from %s port %s",h,portbuf);
+                }
 
 	/* handle the connection */
 	if(mode==SINGLE_PROCESS_DAEMON)
@@ -1326,7 +1367,7 @@ static int open_command_file(void)
 		return OK;
 
 	do
-		fd = open(command_file,O_WRONLY|((append_to_file==TRUE)?O_APPEND:0));
+		fd = open(command_file,O_WRONLY|O_NONBLOCK|((append_to_file==TRUE)?O_APPEND:0));
 	while(fd < 0 && errno == EINTR);
 
 	/* command file doesn't exist - monitoring app probably isn't running... */
@@ -1385,6 +1426,10 @@ int process_arguments(int argc, char **argv){
 		/* show usage */
 		if(!strcmp(argv[x-1],"-h") || !strcmp(argv[x-1],"--help"))
 			show_help=TRUE;
+
+		/* run in foreground mode */
+		else if(!strcmp(argv[x-1],"-f") || !strcmp(argv[x-1],"--foreground"))
+			foreground=TRUE;
 
 		/* show license */
 		else if(!strcmp(argv[x-1],"-l") || !strcmp(argv[x-1],"--license"))
