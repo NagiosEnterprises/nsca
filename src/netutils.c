@@ -9,7 +9,7 @@
  *
  * Description:
  *
- * This file contains common network functions used in ncpa and send_nsca.
+ * This file contains common network functions used in nsca and send_nsca.
  *
  * License Information:
  *
