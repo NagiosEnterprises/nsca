@@ -130,7 +130,7 @@ int main(int argc, char **argv){
                 printf("This program is designed to accept passive check results from\n");
                 printf("remote hosts that use the send_nsca utility.  Can run as a service\n");
                 printf("under inetd or xinetd (read the docs for info on this), or as a\n");
-                printf("standalone daemon or forground process.\n");
+                printf("standalone daemon or foreground process.\n");
                 printf("\n");
                 }
 
