@@ -113,7 +113,7 @@ int main(int argc, char **argv){
 #endif
 		printf("\n");
 		if(legacy_2_7_mode){
-			printf("Running in compatibility mode (server < V2.9, legacy plugin output length is %d bytes)\n", plugin_output_length);
+			printf("Running in compatibility mode (server < V2.9, legacy plugin output length is %ld bytes)\n", plugin_output_length);
 		}
 		printf("\n");
 	}
