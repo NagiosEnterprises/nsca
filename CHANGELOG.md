@@ -4,6 +4,12 @@ NSCA Changelog
 x.x.x - 2017-03-17
 ------------------
  * Changed release date to ISO format (yyyy-mm-dd) (John Frickson)
+ * typofixes (Lajos Veres)
+ * Send errors to stderr, where they belong (Bas Couwenberg / Sean Finney)
+ * Fix spelling errors (Bas Couwenberg)
+ * Fix potential buffer overflow (Bas Couwenberg)
+ * Spelling fixes (Josh Soref)
+ * Removed escape newlines so that long output works (Bryan Heden)
 
 
 2.9.2 - 2016-12-07
