@@ -16,12 +16,13 @@
  * 
  ******************************************************************************/
 
+#define _GNU_SOURCE
 #include "../include/common.h"
 #include "../include/config.h"
 #include "../include/netutils.h"
 #include "../include/utils.h"
 #include "../include/nsca.h"
-
+#include <stdio.h>
 
 static int server_port=DEFAULT_SERVER_PORT;
 static char server_address[64]="";
@@ -1093,7 +1094,7 @@ static void handle_connection(int sock, void *data){
 
         /* for some reason we didn't send all the bytes we were supposed to */
 	else if(bytes_to_send<sizeof(send_packet)){
-                syslog(LOG_ERR,"Only able to send %d of %d bytes of init packet to client\n",rc,sizeof(send_packet));
+                syslog(LOG_ERR,"Only able to send %d of %lu bytes of init packet to client\n",rc,(unsigned long)sizeof(send_packet));
                 encrypt_cleanup(decryption_method,CI);
                 close(sock);
 		if(mode==MULTI_PROCESS_DAEMON)
@@ -1129,8 +1130,6 @@ static void handle_connection_read(int sock, void *data){
         u_int32_t packet_crc32;
         u_int32_t calculated_crc32;
         struct crypt_instance *CI;
-        time_t packet_time;
-        time_t current_time;
         int16_t return_code;
         unsigned long packet_age=0L;
         int bytes_to_recv;
@@ -1215,7 +1214,6 @@ static void handle_connection_read(int sock, void *data){
         strncpy(host_name,receive_packet.host_name,sizeof(host_name)-1);
         host_name[sizeof(host_name)-1]='\0';
 
-        packet_age=(unsigned long)(current_time-packet_time);
         if(debug==TRUE)
                   syslog(LOG_ERR,"Time difference in packet: %lu seconds for host %s", packet_age, host_name);
         if((max_packet_age>0 && (packet_age>max_packet_age) && (packet_age>=0)) ||
@@ -1275,7 +1273,6 @@ static int write_checkresult_file(char *host_name, char *svc_description, int re
         mode_t new_umask=077;
         mode_t old_umask;
         time_t current_time;
-        char *output_file=NULL;
         int checkresult_file_fd=-1;
         char *checkresult_file=NULL;
         char *checkresult_ok_file=NULL;
@@ -1300,8 +1297,8 @@ static int write_checkresult_file(char *host_name, char *svc_description, int re
         time(&current_time);
         fprintf(checkresult_file_fp,"### NSCA Passive Check Result ###\n");
         fprintf(checkresult_file_fp,"# Time: %s",ctime(&current_time));
-        fprintf(checkresult_file_fp,"file_time=%d\n\n",current_time);
-        fprintf(checkresult_file_fp,"### %s Check Result ###\n",(svc_description=="")?"Host":"Service");
+        fprintf(checkresult_file_fp,"file_time=%ld\n\n",current_time);
+        fprintf(checkresult_file_fp,"### %s Check Result ###\n",(!*svc_description)?"Host":"Service");
         fprintf(checkresult_file_fp,"host_name=%s\n",host_name);
         if(strcmp(svc_description,""))
                 fprintf(checkresult_file_fp,"service_description=%s\n",svc_description);
@@ -1602,8 +1599,6 @@ static int get_group_info(const char *group, gid_t *gid){
 
 /* drops privileges */
 static int drop_privileges(const char *user, uid_t uid, gid_t gid){
-	struct group *grp;
-	struct passwd *pw;
 
 	/* only drop privileges if we're running as root, so we don't interfere with being debugged while running as some random user */
 	if(getuid()!=0)
@@ -1668,7 +1663,6 @@ void do_chroot(void){
 void sighandler(int sig){
 	static char *sigs[]={"EXIT","HUP","INT","QUIT","ILL","TRAP","ABRT","BUS","FPE","KILL","USR1","SEGV","USR2","PIPE","ALRM","TERM","STKFLT","CHLD","CONT","STOP","TSTP","TTIN","TTOU","URG","XCPU","XFSZ","VTALRM","PROF","WINCH","IO","PWR","UNUSED","ZERR","DEBUG",(char *)NULL};
 	int i;
-	char temp_buffer[MAX_INPUT_BUFFER];
 
 	if(sig<0)
 		sig=-sig;
