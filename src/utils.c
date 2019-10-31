@@ -270,7 +270,7 @@ void encrypt_cleanup(int encryption_method, struct crypt_instance *CI){
 
 
 /* generates IV to use for encrypted communications (function is called by server only, client uses IV it receives from server) */
-static void generate_transmitted_iv(char *transmitted_iv){
+void generate_transmitted_iv(char *transmitted_iv){
         FILE *fp;
         int x;
         int seed=0;

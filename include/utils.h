@@ -53,7 +53,7 @@ unsigned long calculate_crc32(char *, int);
 int encrypt_init(char *,int,char *,struct crypt_instance **);
 void encrypt_cleanup(int,struct crypt_instance *);
 
-static void generate_transmitted_iv(char *transmitted_iv);
+void generate_transmitted_iv(char *transmitted_iv);
 
 void encrypt_buffer(char *,int,char *,int,struct crypt_instance *);
 void decrypt_buffer(char *,int,char *,int,struct crypt_instance *);
