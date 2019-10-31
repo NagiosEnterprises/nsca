@@ -45,6 +45,7 @@ struct crypt_instance *CI=NULL;
 int show_help=FALSE;
 int show_license=FALSE;
 int show_version=FALSE;
+int verbose=TRUE;
 
 
 int process_arguments(int,char **);
@@ -349,7 +350,8 @@ int main(int argc, char **argv){
 	/* close the connection */
 	close(sd);
 
-	printf("%d data packet(s) sent to host successfully.\n",total_packets);
+	if (total_packets == 0 || verbose)
+		printf("%d data packet(s) sent to host successfully.\n",total_packets);
 
 	/* exit cleanly */
 	do_exit(STATE_OK);
@@ -449,6 +451,10 @@ int process_arguments(int argc, char **argv){
 		/* show version */
 		else if(!strcmp(argv[x-1],"-V") || !strcmp(argv[x-1],"--version"))
 			show_version=TRUE;
+
+		/* be quiet unless there are errors */
+		else if(!strcmp(argv[x-1],"--quiet"))
+			verbose=FALSE;
 
 		/* server name/address */
 		else if(!strcmp(argv[x-1],"-H")){
