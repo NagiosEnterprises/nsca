@@ -120,9 +120,10 @@ int main(int argc, char **argv){
 	}
 
 	if(result!=OK || show_help==TRUE){
-		printf("Usage: %s -H <host_address> [-p port] [-to to_sec] [-d delim] [-ds set_delim] [-c config_file]\n",argv[0]);
+		printf("Usage: %s [--quiet] -H <host_address> [-p port] [-to to_sec] [-d delim] [-ds set_delim] [-c config_file]\n",argv[0]);
 		printf("\n");
 		printf("Options:\n");
+		printf(" --quiet        : Be quiet unless there are errors\n");
 		printf(" <host_address> = The IP address of the host running the NSCA daemon\n");
 		printf(" [port]         = The port on which the daemon is running - default is %d\n",DEFAULT_SERVER_PORT);
 		printf(" [to_sec]       = Number of seconds before connection attempt times out.\n");
