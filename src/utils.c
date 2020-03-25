@@ -40,6 +40,8 @@ static unsigned long crc32_table[256];
 static volatile sig_atomic_t mcrypt_initialized=FALSE;
 #endif
 
+static void generate_transmitted_iv(char *transmitted_iv);
+
 /* build the crc table - must be called before calculating the crc value */
 void generate_crc32_table(void){
 	unsigned long crc, poly;
