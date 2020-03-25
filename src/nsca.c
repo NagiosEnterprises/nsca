@@ -740,6 +740,7 @@ static int find_rhand(int fd){
 	/* we couldn't find the read handler */
         syslog(LOG_ERR, "Handler stack corrupt - aborting");
         do_exit(STATE_CRITICAL);
+        return -1; /* Does not get executed */
         }
 
 
@@ -756,6 +757,7 @@ static int find_whand(int fd){
 	/* we couldn't find the write handler */
         syslog(LOG_ERR, "Handler stack corrupt - aborting");
         do_exit(STATE_CRITICAL);
+        return -1; /* Does not get executed */
         }
 
 
