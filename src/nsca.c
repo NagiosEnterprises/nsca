@@ -957,7 +957,7 @@ static void accept_connection(int sock, void *unused){
 				return;
 
 			/* try and handle temporary errors */
-			if(errno==EWOULDBLOCK || errno==EINTR || errno==ECHILD) || errno==ECONNABORTED){
+			if(errno==EWOULDBLOCK || errno==EINTR || errno==ECHILD || errno==ECONNABORTED){
 				if(mode==MULTI_PROCESS_DAEMON)
 					sleep(1);
 				else
