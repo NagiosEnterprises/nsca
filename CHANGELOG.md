@@ -1,7 +1,7 @@
 NSCA Changelog
 ==============
 
-2.10 - 2020-03-??
+2.10 - 2020-04-02
 ------------------
  * Changed release date to ISO format (yyyy-mm-dd) (John Frickson)
  * Add --quiet mode to send_nsca (Timo Juhani Lindfors)

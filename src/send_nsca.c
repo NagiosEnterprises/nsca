@@ -4,7 +4,7 @@
  * License: GPL v2
  * Copyright (c) 2000-2007 Ethan Galstad (nagios@nagios.org)
  *
- * Last Modified: 12-07-2016
+ * Last Modified: 2020-03-27
  *
  * Command line: SEND_NSCA <host_address> [-p port] [-to to_sec] [-c config_file]
  *
