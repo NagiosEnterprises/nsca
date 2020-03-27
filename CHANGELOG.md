@@ -1,14 +1,17 @@
 NSCA Changelog
 ==============
 
-x.x.x - 2017-03-17
+2.10 - 2020-03-??
 ------------------
  * Changed release date to ISO format (yyyy-mm-dd) (John Frickson)
- * typofixes (Lajos Veres)
+ * Add --quiet mode to send_nsca (Timo Juhani Lindfors)
+ * Add --ds to specify block delimiters (for sending multiple checks at once) in send_nsca (Nate Rini)
+ * Add legacy_2_7_mode (for sending to nsca 2.7.x) to send_nsca (Adrian Freihofer, Xavier Bachelot)
+ * Add foreground mode (Nate Rini)
  * Send errors to stderr, where they belong (Bas Couwenberg / Sean Finney)
- * Fix spelling errors (Bas Couwenberg)
+ * Fix crashes on ECONNABORTED (Craig Leres)
  * Fix potential buffer overflow (Bas Couwenberg)
- * Spelling fixes (Josh Soref)
+ * Spelling fixes (Josh Soref, Lajos Veres, Bas Couwenberg)
  * Removed escape newlines so that long output works (Bryan Heden)
 
 
