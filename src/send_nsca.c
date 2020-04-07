@@ -82,21 +82,6 @@ int main(int argc, char **argv){
 	/* process command-line arguments */
 	result=process_arguments(argc,argv);
 
-	/* read the config file */
-	result=read_config_file(config_file);
-
-	/* exit if there are errors... */
-	if(result==ERROR){
-		fprintf(stderr, "Error: Config file '%s' contained errors...\n",config_file);
-		do_exit(STATE_CRITICAL);
-	}
-
-	/* set output length depending on 2.7/2.9 mode */
-	if(legacy_2_7_mode){
-		plugin_output_length=OLD_PLUGINOUTPUT_LENGTH;
-		sizeof_send_packet = sizeof(send_packet) - (MAX_PLUGINOUTPUT_LENGTH - plugin_output_length);
-	}
-
 	if(result!=OK || show_help==TRUE || show_license==TRUE || show_version==TRUE){
 
 		if(result!=OK)
@@ -113,24 +98,25 @@ int main(int argc, char **argv){
 		printf("NOT AVAILABLE");
 #endif
 		printf("\n");
-		if(legacy_2_7_mode){
-			printf("Running in compatibility mode (server < V2.9, legacy plugin output length is %ld bytes)\n", plugin_output_length);
-		}
 		printf("\n");
 	}
 
 	if(result!=OK || show_help==TRUE){
-		printf("Usage: %s [--quiet] -H <host_address> [-p port] [-to to_sec] [-d delim] [-ds set_delim] [-c config_file]\n",argv[0]);
+		printf("Usage: %s [--quiet] -H <host_address> [-p port] [-to to_sec] [-d delim] [-ds set_delim] [-c config_file] [--legacy-2-7-mode]\n",argv[0]);
 		printf("\n");
 		printf("Options:\n");
-		printf(" --quiet        : Be quiet unless there are errors\n");
-		printf(" <host_address> = The IP address of the host running the NSCA daemon\n");
-		printf(" [port]         = The port on which the daemon is running - default is %d\n",DEFAULT_SERVER_PORT);
-		printf(" [to_sec]       = Number of seconds before connection attempt times out.\n");
-		printf("                  (default timeout is %d seconds)\n",DEFAULT_SOCKET_TIMEOUT);
-		printf(" [delim]        = Delimiter to use when parsing input (defaults to a tab). Honors hex formatted values: 0x09.\n");
-		printf(" [set_delim]    = Delimiter to use when parsing different sets (defaults to a ETB character). Honors hex formatted values: 0x17.\n");
-		printf(" [config_file]  = Name of config file to use\n");
+		printf(" --quiet            = Be quiet unless there are errors\n");
+		printf(" <host_address>     = The IP address of the host running the NSCA daemon\n");
+		printf(" [port]             = The port on which the daemon is running - default is %d\n",DEFAULT_SERVER_PORT);
+		printf(" [to_sec]           = Number of seconds before connection attempt times out.\n");
+		printf("                      (default timeout is %d seconds)\n",DEFAULT_SOCKET_TIMEOUT);
+		printf(" [delim]            = Delimiter to use when parsing input (defaults to a tab).\n");
+		printf("                      Honors hex formatted values, e.g. 0x09.\n");
+		printf(" [set_delim]        = Delimiter to use when parsing different sets \n");
+		printf("                      (defaults to an ETB character).\n");
+		printf("                      Honors hex formatted values, e.g. 0x17.\n");
+		printf(" [config_file]      = Name of config file to use\n");
+		printf(" --legacy-2-7-mode  = Allow sending to NSCA 2.7 daemon\n");
 		printf("\n");
 		printf("Note:\n");
 		printf("This utility is used to send passive check results to the NSCA daemon.  Host and\n");
@@ -146,9 +132,6 @@ int main(int argc, char **argv){
 			printf("When submitting multiple simultaneous results, separate each set with the ETB\n");
 			printf("character (^W or 0x17)\n");
 		}
-		printf("<host_name>[tab]<return_code>[tab]<plugin_output>[newline]\n\n");
-		printf("When submitting multiple simultaneous results, separate each set with the ETB\n");
-                printf("character (^W or 0x17)\n");
 	}
 
 	if(show_license==TRUE)
@@ -168,7 +151,13 @@ int main(int argc, char **argv){
 	if(result==ERROR){
 		printf("Error: Config file '%s' contained errors...\n",config_file);
 		do_exit(STATE_CRITICAL);
-		}
+	}
+
+	/* set output length depending on 2.7/2.9 mode */
+	if(legacy_2_7_mode){
+		plugin_output_length=OLD_PLUGINOUTPUT_LENGTH;
+		sizeof_send_packet = sizeof(send_packet) - (MAX_PLUGINOUTPUT_LENGTH - plugin_output_length);
+	}
 
 	/* generate the CRC 32 table */
 	generate_crc32_table();
@@ -457,6 +446,9 @@ int process_arguments(int argc, char **argv){
 		else if(!strcmp(argv[x-1],"--quiet"))
 			verbose=FALSE;
 
+		else if(!strcmp(argv[x-1],"--legacy-2-7-mode")){
+			legacy_2_7_mode=TRUE;
+		}
 		/* server name/address */
 		else if(!strcmp(argv[x-1],"-H")){
 			if(x<argc){
@@ -676,13 +668,6 @@ int read_config_file(char *filename){
 #endif
 				return ERROR;
 			}
-		}
-		else if(strstr(input_buffer,"legacy_2_7_mode")){
-			if( strstr(varvalue,"true")  || strstr(varvalue,"yes") ){
-				legacy_2_7_mode=TRUE;
-			} else if( strstr(varvalue,"false") || strstr(varvalue,"no") ){
-				legacy_2_7_mode=FALSE;
-				}
 		}
 		else{
 			printf("Unknown option specified in config file '%s' - Line %d\n",filename,line);

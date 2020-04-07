@@ -60,7 +60,3 @@
 #
 
 encryption_method=1
-
-# Run in version 2.7  backward compatibility mode
-# Sent packages are limited to 512 bytes
-# legacy_2_7_mode=true
