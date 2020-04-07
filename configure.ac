@@ -4,7 +4,7 @@ dnl Disable caching
 define([AC_CACHE_LOAD],)
 define([AC_CACHE_SAVE],)
 
-AC_INIT([nsca],[2.10.rc1],[nagios-users@lists.sourceforge.net],[nsca],[http://www.nagios.org])
+AC_INIT([nsca],[2.10.rc2],[nagios-users@lists.sourceforge.net],[nsca],[http://www.nagios.org])
 AC_CONFIG_SRCDIR([src/nsca.c])
 AC_CONFIG_HEADER(include/config.h)
 AC_CONFIG_FILES([Makefile
@@ -18,9 +18,9 @@ AC_CONFIG_FILES([Makefile
 AC_PREFIX_DEFAULT(/usr/local/nagios)
 
 PKG_NAME=nsca
-PKG_VERSION="2.10.rc1"
+PKG_VERSION="2.10.rc2"
 PKG_HOME_URL="http://www.nagios.org/"
-PKG_REL_DATE="2020-03-27"
+PKG_REL_DATE="2020-04-07"
 AC_SUBST(PKG_NAME)
 AC_SUBST(PKG_VERSION)
 AC_SUBST(PKG_HOME_URL)
