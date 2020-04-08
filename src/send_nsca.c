@@ -537,9 +537,10 @@ int process_arguments(int argc, char **argv){
 
 /* handle timeouts */
 void alarm_handler(int sig){
-	const char msg[] = "Error: Timeout after %d seconds\n";
+	char *msg = NULL;
+	asprintf(&msg, "Error: Timeout after %d seconds\n",socket_timeout);
 	/* fprintf(stderr, "Error: Timeout after %d seconds\n",socket_timeout); */
-	write(STDOUT_FILENO, msg, sizeof(msg) - 1);
+	write(STDERR_FILENO, msg, sizeof(msg) - 1);
 
 	do_exit(STATE_CRITICAL);
 }
