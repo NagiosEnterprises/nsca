@@ -2367,9 +2367,9 @@ ac_config_files="$ac_config_files Makefile subst src/Makefile package/solaris/Ma
 
 
 PKG_NAME=nsca
-PKG_VERSION="2.10.rc3"
+PKG_VERSION="2.10.0"
 PKG_HOME_URL="http://www.nagios.org/"
-PKG_REL_DATE="2020-04-08"
+PKG_REL_DATE="2020-04-15"
 
 
 
