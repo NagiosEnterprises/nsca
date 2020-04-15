@@ -116,7 +116,7 @@ int main(int argc, char **argv){
 		printf("                      (defaults to an ETB character).\n");
 		printf("                      Honors hex formatted values, e.g. 0x17.\n");
 		printf(" [config_file]      = Name of config file to use\n");
-		printf(" --legacy-2-7-mode  = Allow sending to NSCA 2.7 daemon\n");
+		printf(" --legacy-2-7-mode  = Allow sending to NSCA 2.7 daemon. This can also be specified in send_nsca.cfg, which takes precedence.\n");
 		printf("\n");
 		printf("Note:\n");
 		printf("This utility is used to send passive check results to the NSCA daemon.  Host and\n");
@@ -668,6 +668,14 @@ int read_config_file(char *filename){
 					printf("Client was not compiled with mcrypt library, so encryption is unavailable.\n");
 #endif
 				return ERROR;
+			}
+		}
+		else if(strstr(input_buffer,"legacy_2_7_mode")){
+			if( strstr(varvalue,"true")  || strstr(varvalue,"yes") ){
+				legacy_2_7_mode=TRUE;
+			} 
+			else if( strstr(varvalue,"false") || strstr(varvalue,"no") ){
+				legacy_2_7_mode=FALSE;
 			}
 		}
 		else{

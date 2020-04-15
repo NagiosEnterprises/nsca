@@ -60,3 +60,9 @@
 #
 
 encryption_method=1
+
+# Run in version 2.7  backward compatibility mode
+# Sent packets are limited to 512 bytes
+# This can also be set as a command-line option, but the config file option 
+# takes precedence.
+# legacy_2_7_mode=true
