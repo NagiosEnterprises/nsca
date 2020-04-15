@@ -4,7 +4,7 @@
  * License: GPL v2
  * Copyright (c) 2000-2007 Ethan Galstad (nagios@nagios.org)
  *
- * Last Modified: 12-07-2016
+ * Last Modified: 2020-04-15
  *
  * Command line: SEND_NSCA <host_address> [-p port] [-to to_sec] [-c config_file]
  *
@@ -25,6 +25,7 @@ time_t start_time,end_time;
 int server_port=DEFAULT_SERVER_PORT;
 char server_name[MAX_HOST_ADDRESS_LENGTH];
 char password[MAX_INPUT_BUFFER]="";
+int legacy_2_7_mode=FALSE;
 char config_file[MAX_INPUT_BUFFER]="send_nsca.cfg";
 char delimiter[2]="\t";
 char block_delimiter[2]=BLOCK_DELIMITER;
@@ -44,6 +45,7 @@ struct crypt_instance *CI=NULL;
 int show_help=FALSE;
 int show_license=FALSE;
 int show_version=FALSE;
+int verbose=TRUE;
 
 
 int process_arguments(int,char **);
@@ -62,16 +64,16 @@ int main(int argc, char **argv){
 	int result;
 	data_packet send_packet;
 	int bytes_to_send;
-	char input[MAX_INPUT_BUFFER];
 	char input_buffer[MAX_INPUT_BUFFER];
-	char *temp_ptr;
 	char host_name[MAX_HOSTNAME_LENGTH];
 	char svc_description[MAX_DESCRIPTION_LENGTH];
 	char plugin_output[MAX_PLUGINOUTPUT_LENGTH];
+	size_t plugin_output_length=MAX_PLUGINOUTPUT_LENGTH;
+	int sizeof_send_packet = sizeof(send_packet);
 	int total_packets=0;
 	int16_t return_code;
 	u_int32_t calculated_crc32;
-	char *inputptr, *ptr1, *ptr2, *ptr3, *ptr4;
+	char *ptr1, *ptr2, *ptr3, *ptr4;
 #ifdef HAVE_SIGACTION
 	struct sigaction sig_action;
 #endif
@@ -83,7 +85,7 @@ int main(int argc, char **argv){
 	if(result!=OK || show_help==TRUE || show_license==TRUE || show_version==TRUE){
 
 		if(result!=OK)
-			printf("Incorrect command line arguments supplied\n");
+			fprintf(stderr, "Incorrect command line arguments supplied\n");
 		printf("\n");
 		printf("NSCA Client %s\n",PROGRAM_VERSION);
 		printf("Copyright (c) 2000-2007 Ethan Galstad (www.nagios.org)\n");
@@ -94,35 +96,43 @@ int main(int argc, char **argv){
 		printf("AVAILABLE");
 #else
 		printf("NOT AVAILABLE");
-#endif		
+#endif
 		printf("\n");
 		printf("\n");
-	        }
+	}
 
 	if(result!=OK || show_help==TRUE){
-		printf("Usage: %s -H <host_address> [-p port] [-to to_sec] [-d delim] [-c config_file]\n",argv[0]);
+		printf("Usage: %s [--quiet] -H <host_address> [-p port] [-to to_sec] [-d delim] [-ds set_delim] [-c config_file] [--legacy-2-7-mode]\n",argv[0]);
 		printf("\n");
 		printf("Options:\n");
-		printf(" <host_address> = The IP address of the host running the NSCA daemon\n");
-		printf(" [port]         = The port on which the daemon is running - default is %d\n",DEFAULT_SERVER_PORT);
-		printf(" [to_sec]       = Number of seconds before connection attempt times out.\n");
-		printf("                  (default timeout is %d seconds)\n",DEFAULT_SOCKET_TIMEOUT);
-		printf(" [delim]        = Delimiter to use when parsing input (defaults to a tab)\n");
-		printf(" [config_file]  = Name of config file to use\n");
+		printf(" --quiet            = Be quiet unless there are errors\n");
+		printf(" <host_address>     = The IP address of the host running the NSCA daemon\n");
+		printf(" [port]             = The port on which the daemon is running - default is %d\n",DEFAULT_SERVER_PORT);
+		printf(" [to_sec]           = Number of seconds before connection attempt times out.\n");
+		printf("                      (default timeout is %d seconds)\n",DEFAULT_SOCKET_TIMEOUT);
+		printf(" [delim]            = Delimiter to use when parsing input (defaults to a tab).\n");
+		printf("                      Honors hex formatted values, e.g. 0x09.\n");
+		printf(" [set_delim]        = Delimiter to use when parsing different sets \n");
+		printf("                      (defaults to an ETB character).\n");
+		printf("                      Honors hex formatted values, e.g. 0x17.\n");
+		printf(" [config_file]      = Name of config file to use\n");
+		printf(" --legacy-2-7-mode  = Allow sending to NSCA 2.7 daemon. This can also be specified in send_nsca.cfg, which takes precedence.\n");
 		printf("\n");
 		printf("Note:\n");
 		printf("This utility is used to send passive check results to the NSCA daemon.  Host and\n");
 		printf("Service check data that is to be sent to the NSCA daemon is read from standard\n");
 		printf("input. Input should be provided in the following format (tab-delimited unless\n");
-		printf("overriden with -d command line argument, one entry per line):\n");
+		printf("overridden with -d command line argument, one entry per line):\n");
 		printf("\n");
 		printf("Service Checks:\n");
 		printf("<host_name>[tab]<svc_description>[tab]<return_code>[tab]<plugin_output>[newline]\n\n");
 		printf("Host Checks:\n");
 		printf("<host_name>[tab]<return_code>[tab]<plugin_output>[newline]\n\n");
-		printf("When submitting multiple simultaneous results, separate each set with the ETB\n");
-                printf("character (^W or 0x17)\n");
-	        }
+		if(legacy_2_7_mode == FALSE){
+			printf("When submitting multiple simultaneous results, separate each set with the ETB\n");
+			printf("character (^W or 0x17)\n");
+		}
+	}
 
 	if(show_license==TRUE)
 		display_license();
@@ -130,16 +140,24 @@ int main(int argc, char **argv){
         if(result!=OK || show_help==TRUE || show_license==TRUE || show_version==TRUE)
 		do_exit(STATE_UNKNOWN);
 
-
+#ifdef DEBUG
+	printf("Delimiter: 0x%02hhx Set Delimiter: 0x%02hhx \n", delimiter[0], block_delimiter[0]);
+#endif
 
 	/* read the config file */
-	result=read_config_file(config_file);	
+	result=read_config_file(config_file);
 
 	/* exit if there are errors... */
 	if(result==ERROR){
 		printf("Error: Config file '%s' contained errors...\n",config_file);
 		do_exit(STATE_CRITICAL);
-		}
+	}
+
+	/* set output length depending on 2.7/2.9 mode */
+	if(legacy_2_7_mode){
+		plugin_output_length=OLD_PLUGINOUTPUT_LENGTH;
+		sizeof_send_packet = sizeof(send_packet) - (MAX_PLUGINOUTPUT_LENGTH - plugin_output_length);
+	}
 
 	/* generate the CRC 32 table */
 	generate_crc32_table();
@@ -165,9 +183,9 @@ int main(int argc, char **argv){
 
 	/* we couldn't connect */
 	if(result!=STATE_OK){
-		printf("Error: Could not connect to host %s on port %d\n",server_name,server_port);
+		fprintf(stderr, "Error: Could not connect to host %s on port %d\n",server_name,server_port);
 		do_exit(STATE_CRITICAL);
-	        }
+	}
 
 #ifdef DEBUG
 	printf("Connected okay...\n");
@@ -176,10 +194,10 @@ int main(int argc, char **argv){
 	/* read the initialization packet containing the IV and timestamp */
 	result=read_init_packet(sd);
 	if(result!=OK){
-		printf("Error: Could not read init packet from server\n");
+		fprintf(stderr, "Error: Could not read init packet from server\n");
 		close(sd);
 		do_exit(STATE_CRITICAL);
-	        }
+	}
 
 #ifdef DEBUG
 	printf("Got init packet from server\n");
@@ -187,10 +205,10 @@ int main(int argc, char **argv){
 
 	/* initialize encryption/decryption routines with the IV we received from the server */
         if(encrypt_init(password,encryption_method,received_iv,&CI)!=OK){
-		printf("Error: Failed to initialize encryption libraries for method %d\n",encryption_method);
+		fprintf(stderr, "Error: Failed to initialize encryption libraries for method %d\n",encryption_method);
 		close(sd);
 		do_exit(STATE_CRITICAL);
-	        }
+	}
 
 #ifdef DEBUG
 	printf("Initialized encryption routines\n");
@@ -200,23 +218,36 @@ int main(int argc, char **argv){
 	/**** WE'RE CONNECTED AND READY TO SEND ****/
 
 	/* read all data from STDIN until there isn't anymore */
-
 	while(!feof(stdin)){
-		int c = getc(stdin);
-		if (c == -1){
-			break;
-			}
-		int pos = 0;
-		while (c != 23){
-			if (c == -1){	// in case we don't terminate properly
-					// or are in single-input mode.
-				break;
+
+		{
+		    int pos = 0;
+		    int c = 0;
+
+		    while ((c = getc(stdin)) >= 0) {
+
+				if (pos > MAX_INPUT_BUFFER - 1) {
+				    printf("Error: Input set is longer than max allowed.\n");
+				    return ERROR;
 				}
-			input_buffer[pos] = c;
-			c = getc(stdin);
-			pos++;
+
+				input_buffer[pos] = c;
+
+				if (c == block_delimiter[0]) {
+				    input_buffer[pos] = 0;
+				    break;
+			    }
+
+				pos += 1;
 			}
-		input_buffer[pos] = 0;
+
+		    input_buffer[pos] = 0;
+		}
+
+#ifdef DEBUG
+		printf("New update set: %s\n", input_buffer);
+#endif
+
 		strip(input_buffer);
 
 		if(!strcmp(input_buffer,""))
@@ -239,33 +270,31 @@ int main(int argc, char **argv){
 
 		/* get the plugin output - if NULL, this is a host check result */
 		ptr4=strtok(NULL,"\x0");
-		
+
 		strncpy(host_name,ptr1,sizeof(host_name)-1);
 		host_name[sizeof(host_name)-1]='\x0';
 		if(ptr4==NULL){
 			strcpy(svc_description,"");
 			return_code=atoi(ptr2);
-                        ptr3=escape_newlines(ptr3);
-			strncpy(plugin_output,ptr3,sizeof(plugin_output)-1);
-		        }
+			strncpy(plugin_output,ptr3,plugin_output_length-1);
+		}
 		else{
 			strncpy(svc_description,ptr2,sizeof(svc_description)-1);
 			return_code=atoi(ptr3);
-                        ptr4=escape_newlines(ptr4);
-			strncpy(plugin_output,ptr4,sizeof(plugin_output)-1);
-		        }
+			strncpy(plugin_output,ptr4,plugin_output_length-1);
+		}
 
 		svc_description[sizeof(svc_description)-1]='\x0';
-		plugin_output[sizeof(plugin_output)-1]='\x0';
+		plugin_output[plugin_output_length-1]='\x0';
 
 		/* increment count of packets we're sending */
 		total_packets++;
 
 		/* clear the packet buffer */
-		bzero(&send_packet,sizeof(send_packet));
+		bzero(&send_packet,sizeof_send_packet);
 
 		/* fill the packet with semi-random data */
-		randomize_buffer((char *)&send_packet,sizeof(send_packet));
+		randomize_buffer((char *)&send_packet,sizeof_send_packet);
 
 		/* copy the data we want to send into the packet */
 		send_packet.packet_version=(int16_t)htons(NSCA_PACKET_VERSION_3);
@@ -279,30 +308,30 @@ int main(int argc, char **argv){
 
 		/* calculate the crc 32 value of the packet */
 		send_packet.crc32_value=(u_int32_t)0L;
-		calculated_crc32=calculate_crc32((char *)&send_packet,sizeof(send_packet));
+		calculated_crc32=calculate_crc32((char *)&send_packet,sizeof_send_packet);
 		send_packet.crc32_value=(u_int32_t)htonl(calculated_crc32);
 
 		/* encrypt the packet */
-		encrypt_buffer((char *)&send_packet,sizeof(send_packet),password,encryption_method,CI);
+		encrypt_buffer((char *)&send_packet,sizeof_send_packet,password,encryption_method,CI);
 
 		/* send the packet */
-		bytes_to_send=sizeof(send_packet);
+		bytes_to_send=sizeof_send_packet;
 		rc=sendall(sd,(char *)&send_packet,&bytes_to_send);
 
 		/* there was an error sending the packet */
 		if(rc==-1){
-			printf("Error: Could not send data to host\n");
+			fprintf(stderr, "Error: Could not send data to host\n");
 			close(sd);
 			do_exit(STATE_UNKNOWN);
-	                }
+		}
 
 		/* for some reason we didn't send all the bytes we were supposed to */
-		else if(bytes_to_send<sizeof(send_packet)){
-			printf("Warning: Sent only %d of %d bytes to host\n",rc,sizeof(send_packet));
+		else if(bytes_to_send<sizeof_send_packet){
+			printf("Warning: Sent only %d of %d bytes to host\n",rc,sizeof_send_packet);
 			close(sd);
 			return STATE_UNKNOWN;
-		        }
-	        }
+		}
+	}
 
 #ifdef DEBUG
 	printf("Done sending data\n");
@@ -311,14 +340,15 @@ int main(int argc, char **argv){
 	/* close the connection */
 	close(sd);
 
-	printf("%d data packet(s) sent to host successfully.\n",total_packets);
+	if (total_packets == 0 || verbose)
+		printf("%d data packet(s) sent to host successfully.\n",total_packets);
 
 	/* exit cleanly */
 	do_exit(STATE_OK);
 
 	/* no compiler complaints here... */
 	return STATE_OK;
-        }
+}
 
 
 
@@ -337,49 +367,49 @@ static void do_exit(int return_code){
 
 	/*** CLEAR SENSITIVE INFO FROM MEMORY ***/
 
-        /* overwrite password */
-        clear_buffer(password,sizeof(password));
+	/* overwrite password */
+	clear_buffer(password,sizeof(password));
 
 	/* disguise decryption method */
 	encryption_method=-1;
 
-        exit(return_code);
-        }
+	exit(return_code);
+}
 
 
 
 /* reads initialization packet (containing IV and timestamp) from server */
 int read_init_packet(int sock){
-        int rc;
-        init_packet receive_packet;
-        int bytes_to_recv;
+	int rc;
+	init_packet receive_packet;
+	int bytes_to_recv;
 
-        /* clear the IV and timestamp */
-        bzero(&received_iv,TRANSMITTED_IV_SIZE);
-        packet_timestamp=(time_t)0;
+	/* clear the IV and timestamp */
+	bzero(&received_iv,TRANSMITTED_IV_SIZE);
+	packet_timestamp=(time_t)0;
 
-        /* get the init packet from the server */
-        bytes_to_recv=sizeof(receive_packet);
-        rc=recvall(sock,(char *)&receive_packet,&bytes_to_recv,socket_timeout);
+	/* get the init packet from the server */
+	bytes_to_recv=sizeof(receive_packet);
+	rc=recvall(sock,(char *)&receive_packet,&bytes_to_recv,socket_timeout);
 
-        /* recv() error or server disconnect */
-        if(rc<=0){
-                printf("Error: Server closed connection before init packet was received\n");
-                return ERROR;
-                }
+	/* recv() error or server disconnect */
+	if(rc<=0){
+		fprintf(stderr, "Error: Server closed connection before init packet was received\n");
+		return ERROR;
+	}
 
-        /* we couldn't read the correct amount of data, so bail out */
-        else if(bytes_to_recv!=sizeof(receive_packet)){
-                printf("Error: Init packet from server was too short (%d bytes received, %d expected)\n",bytes_to_recv,sizeof(receive_packet));
-                return ERROR;
-                }
+	/* we couldn't read the correct amount of data, so bail out */
+	else if(bytes_to_recv!=sizeof(receive_packet)){
+		fprintf(stderr, "Error: Init packet from server was too short (%d bytes received, %lu expected)\n",bytes_to_recv,(unsigned long)sizeof(receive_packet));
+		return ERROR;
+	}
 
-        /* transfer the IV and timestamp */
-        memcpy(&received_iv,&receive_packet.iv[0],TRANSMITTED_IV_SIZE);
-        packet_timestamp=(time_t)ntohl(receive_packet.timestamp);
+	/* transfer the IV and timestamp */
+	memcpy(&received_iv,&receive_packet.iv[0],TRANSMITTED_IV_SIZE);
+	packet_timestamp=(time_t)ntohl(receive_packet.timestamp);
 
-        return OK;
-        }
+	return OK;
+}
 
 
 
@@ -391,7 +421,7 @@ int process_arguments(int argc, char **argv){
 	if(argc<2){
 		show_help=TRUE;
 		return OK;
-	        }
+	}
 
 	/* support old command-line syntax (host name first argument) */
 	strncpy(server_name,argv[1],sizeof(server_name)-1);
@@ -412,13 +442,20 @@ int process_arguments(int argc, char **argv){
 		else if(!strcmp(argv[x-1],"-V") || !strcmp(argv[x-1],"--version"))
 			show_version=TRUE;
 
+		/* be quiet unless there are errors */
+		else if(!strcmp(argv[x-1],"--quiet"))
+			verbose=FALSE;
+
+		else if(!strcmp(argv[x-1],"--legacy-2-7-mode")){
+			legacy_2_7_mode=TRUE;
+		}
 		/* server name/address */
 		else if(!strcmp(argv[x-1],"-H")){
 			if(x<argc){
 				strncpy(server_name,argv[x],sizeof(server_name));
 				server_name[sizeof(server_name)-1]='\x0';
 				x++;
-			        }
+			}
 			else
 				return ERROR;
 		        }
@@ -428,10 +465,10 @@ int process_arguments(int argc, char **argv){
 			if(x<argc){
 				server_port=atoi(argv[x]);
 				x++;
-			        }
+			}
 			else
 				return ERROR;
-		        }
+		}
 
 		/* timeout when connecting */
 		else if(!strcmp(argv[x-1],"-to")){
@@ -440,10 +477,10 @@ int process_arguments(int argc, char **argv){
 				if(socket_timeout<=0)
 					return ERROR;
 				x++;
-			        }
+			}
 			else
 				return ERROR;
-		        }
+		}
 
 		/* config file */
 		else if(!strcmp(argv[x-1],"-c")){
@@ -451,39 +488,62 @@ int process_arguments(int argc, char **argv){
 				snprintf(config_file,sizeof(config_file),"%s",argv[x]);
 				config_file[sizeof(config_file)-1]='\x0';
 				x++;
-			        }
-			else
+			}
+			else {
 				return ERROR;
-		        }
+			}
+		}
 
 		/* delimiter to use when parsing input */
 		else if(!strcmp(argv[x-1],"-d")){
 			if(x<argc){
-				snprintf(delimiter,sizeof(delimiter),"%s",argv[x]);
-				delimiter[sizeof(delimiter)-1]='\x0';
+				errno=0;
+				long int d = strtol(argv[x], NULL, 16);
+				if(errno){
+				    snprintf(delimiter,sizeof(delimiter),"%s",argv[x]);
+				    delimiter[sizeof(delimiter)-1]='\x0';
+			        }else delimiter[0]= (char) d;
 				x++;
-			        }
-			else
+				}
+			else {
 				return ERROR;
-		        }
+			}
+		}
+
+		/* delimiter to use when parsing input set */
+		else if(!strcmp(argv[x-1],"-ds")){
+			if(x<argc){
+				errno=0;
+				long int d = strtol(argv[x], NULL, 16);
+				if(errno){
+				    snprintf(block_delimiter,sizeof(block_delimiter),"%s",argv[x]);
+				    block_delimiter[sizeof(block_delimiter)-1]='\x0';
+			        }else block_delimiter[0]= (char) d;
+				x++;
+				}
+			else {
+				return ERROR;
+			}
+		}
 
 		else if(x>2)
 			return ERROR;
-	        }
+	}
 
 	return OK;
-        }
+}
 
 
 
 /* handle timeouts */
 void alarm_handler(int sig){
-	const char msg[] = "Error: Timeout after %d seconds\n";
-	/* printf("Error: Timeout after %d seconds\n",socket_timeout); */
-	write(STDOUT_FILENO, msg, sizeof(msg) - 1);
+	char *msg = NULL;
+	asprintf(&msg, "Error: Timeout after %d seconds\n",socket_timeout);
+	/* fprintf(stderr, "Error: Timeout after %d seconds\n",socket_timeout); */
+	write(STDERR_FILENO, msg, sizeof(msg) - 1);
 
 	do_exit(STATE_CRITICAL);
-        }
+}
 
 
 
@@ -491,7 +551,6 @@ void alarm_handler(int sig){
 int read_config_file(char *filename){
 	FILE *fp;
 	char input_buffer[MAX_INPUT_BUFFER];
-	char *temp_buffer;
 	char *varname;
 	char *varvalue;
 	int line;
@@ -504,7 +563,7 @@ int read_config_file(char *filename){
 	if(fp==NULL){
 		printf("Could not open config file '%s' for reading.\n",filename);
 		return ERROR;
-	        }	
+	}
 
 	line=0;
 	while(fgets(input_buffer,MAX_INPUT_BUFFER-1,fp)){
@@ -526,7 +585,7 @@ int read_config_file(char *filename){
 			printf("No variable name specified in config file '%s' - Line %d\n",filename,line);
 
 			return ERROR;
-		        }
+		}
 
 		/* get the variable value */
 		varvalue=strtok(NULL,"\n");
@@ -535,7 +594,7 @@ int read_config_file(char *filename){
 			printf("No variable value specified in config file '%s' - Line %d\n",filename,line);
 
 			return ERROR;
-		        }
+		}
 
 		if(strstr(input_buffer,"password")){
 			if(strlen(varvalue)>sizeof(password)-1){
@@ -543,10 +602,10 @@ int read_config_file(char *filename){
 				printf("Password is too long in config file '%s' - Line %d\n",filename,line);
 
 				return ERROR;
-			        }
+			}
 			strncpy(password,varvalue,sizeof(password));
 			password[sizeof(password)-1]='\x0';
-		        }
+		}
 
 		else if(strstr(input_buffer,"encryption_method")){
 
@@ -609,21 +668,28 @@ int read_config_file(char *filename){
 					printf("Client was not compiled with mcrypt library, so encryption is unavailable.\n");
 #endif
 				return ERROR;
-			        }
-		        }
-
+			}
+		}
+		else if(strstr(input_buffer,"legacy_2_7_mode")){
+			if( strstr(varvalue,"true")  || strstr(varvalue,"yes") ){
+				legacy_2_7_mode=TRUE;
+			} 
+			else if( strstr(varvalue,"false") || strstr(varvalue,"no") ){
+				legacy_2_7_mode=FALSE;
+			}
+		}
 		else{
 			printf("Unknown option specified in config file '%s' - Line %d\n",filename,line);
 
 			return ERROR;
-		        }
+		}
 
-	        }
+	}
 
 
 	/* close the config file */
 	fclose(fp);
 
 	return OK;
-	}
+}
 

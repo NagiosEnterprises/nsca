@@ -17,7 +17,7 @@ There are 3 tests at the moment:
 
 Requirements
 ------------
-You will need to have the following CPAN modules installed: 
+You will need to have the following CPAN modules installed:
 
 Test::More
 Class::Struct

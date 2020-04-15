@@ -5,26 +5,27 @@
  * Copyright (c) 2000-2009 Ethan Galstad (egalstad@nagios.org)
  * License: GPL v2
  *
- * Last Modified: 12-07-2016
+ * Last Modified: 2020-04-15
  *
  * Command line: NSCA -c <config_file> [mode]
  *
  * Description:
  *
- * This program is designed to run as a daemon on the main Nagios machine 
+ * This program is designed to run as a daemon on the main Nagios machine
  * and accept service check results from remote hosts.
- * 
+ *
  ******************************************************************************/
 
+#define _GNU_SOURCE
 #include "../include/common.h"
 #include "../include/config.h"
 #include "../include/netutils.h"
 #include "../include/utils.h"
 #include "../include/nsca.h"
-
+#include <stdio.h>
 
 static int server_port=DEFAULT_SERVER_PORT;
-static char server_address[16]="0.0.0.0";
+static char server_address[64]="";
 static int socket_timeout=DEFAULT_SOCKET_TIMEOUT;
 static int log_facility=LOG_DAEMON;
 
@@ -34,6 +35,7 @@ static char command_file[MAX_INPUT_BUFFER]="";
 static char password[MAX_INPUT_BUFFER]="";
 
 static enum { OPTIONS_ERROR, SINGLE_PROCESS_DAEMON, MULTI_PROCESS_DAEMON, INETD } mode=SINGLE_PROCESS_DAEMON;
+static int foreground=FALSE;
 static int debug=FALSE;
 static int aggregate_writes=FALSE;
 static int decryption_method=ENCRYPT_XOR;
@@ -69,7 +71,7 @@ int     maxpfds=0;
 int     nrhand=0;
 int     nwhand=0;
 int     npfds=0;
-	
+
 #ifdef HAVE_LIBWRAP
 int     allow_severity=LOG_INFO;
 int     deny_severity=LOG_WARNING;
@@ -93,7 +95,7 @@ int main(int argc, char **argv){
         if(result!=OK || show_help==TRUE || show_license==TRUE || show_version==TRUE){
 
 		if(result!=OK)
-			printf("Incorrect command line arguments supplied\n");
+			fprintf(stderr, "Incorrect command line arguments supplied\n");
                 printf("\n");
                 printf("NSCA - Nagios Service Check Acceptor\n");
 		printf("Copyright (c) 2009 Nagios Core Development Team and Community Contributors\n");
@@ -106,7 +108,7 @@ int main(int argc, char **argv){
                 printf("AVAILABLE");
 #else
                 printf("NOT AVAILABLE");
-#endif          
+#endif
                 printf("\n");
 #ifdef HAVE_LIBWRAP
 		printf("TCP Wrappers Available\n");
@@ -115,10 +117,11 @@ int main(int argc, char **argv){
 	        }
 
 	if(result!=OK || show_help==TRUE){
-                printf("Usage: %s -c <config_file> [mode]\n",argv[0]);
+                printf("Usage: %s [-f] -c <config_file> [mode]\n",argv[0]);
                 printf("\n");
                 printf("Options:\n");
 		printf(" <config_file> = Name of config file to use\n");
+		printf(" -f            = Run in foreground only. Disables fork.\n");
 		printf(" [mode]        = Determines how NSCA should run. Valid modes:\n");
                 printf("   --inetd     = Run as a service under inetd or xinetd\n");
                 printf("   --daemon    = Run as a standalone multi-process daemon\n");
@@ -128,7 +131,7 @@ int main(int argc, char **argv){
                 printf("This program is designed to accept passive check results from\n");
                 printf("remote hosts that use the send_nsca utility.  Can run as a service\n");
                 printf("under inetd or xinetd (read the docs for info on this), or as a\n");
-                printf("standalone daemon.\n");
+                printf("standalone daemon or foreground process.\n");
                 printf("\n");
                 }
 
@@ -142,7 +145,7 @@ int main(int argc, char **argv){
         /* open a connection to the syslog facility */
 	/* facility may be overridden later */
 	get_log_facility(NSCA_LOG_FACILITY);
-        openlog("nsca",LOG_PID|LOG_NDELAY,log_facility); 
+        openlog("nsca",LOG_PID|LOG_NDELAY,log_facility);
 
 	/* make sure the config file uses an absolute path */
 	if(config_file[0]!='/'){
@@ -165,7 +168,7 @@ int main(int argc, char **argv){
 	        }
 
 	/* read the config file */
-        result=read_config_file(config_file);   
+        result=read_config_file(config_file);
 
         /* exit if there are errors... */
         if(result==ERROR)
@@ -201,10 +204,10 @@ int main(int argc, char **argv){
 		       V     */
 
                 /* daemonize and start listening for requests... */
-                if(fork()==0){
+                if(foreground || fork()==0){
 
                         /* we're a daemon - set up a new process group */
-                        setsid();
+                        if(!foreground) setsid();
 
 			/* handle signals */
 #ifdef HAVE_SIGACTION
@@ -238,7 +241,7 @@ int main(int argc, char **argv){
 			/* write pid file */
 			if(write_pid_file(uid,gid)==ERROR)
 				return STATE_CRITICAL;
-		
+
 			/* chroot if configured */
 			do_chroot();
 
@@ -261,7 +264,7 @@ int main(int argc, char **argv){
 					free_memory();
 
 					/* re-read the config file */
-					result=read_config_file(config_file);	
+					result=read_config_file(config_file);
 
 					/* exit if there are errors... */
 					if(result==ERROR){
@@ -269,7 +272,7 @@ int main(int argc, char **argv){
 						break;
 						}
 					}
-	
+
 				}while(sigrestart==TRUE && sigshutdown==FALSE);
 
 			/* remove pid file */
@@ -282,7 +285,7 @@ int main(int argc, char **argv){
         default:
                 break;
 	        }
-	
+
 	/* we are now running in daemon mode, or the connection handed over by inetd has been completed, so the parent process exits */
         do_exit(STATE_OK);
 
@@ -471,13 +474,13 @@ static int read_config_file(char *filename){
 		else if(strstr(input_buffer,"debug")){
                         if(atoi(varvalue)>0)
                                 debug=TRUE;
-                        else 
+                        else
                                 debug=FALSE;
                         }
 		else if(strstr(input_buffer,"aggregate_writes")){
                         if(atoi(varvalue)>0)
                                 aggregate_writes=TRUE;
-                        else 
+                        else
                                 aggregate_writes=FALSE;
                         }
                     else if(strstr(input_buffer,"check_result_path")){
@@ -486,7 +489,7 @@ static int read_config_file(char *filename){
                                     return ERROR;
                                     }
                             check_result_path=strdup(varvalue);
-                            
+
                             int checkresult_test_fd=-1;
                             char *checkresult_test=NULL;
                             asprintf(&checkresult_test,"%s/nsca.test.%i",check_result_path,getpid());
@@ -504,7 +507,7 @@ static int read_config_file(char *filename){
 		else if(strstr(input_buffer,"append_to_file")){
                         if(atoi(varvalue)>0)
                                 append_to_file=TRUE;
-                        else 
+                        else
                                 append_to_file=FALSE;
                         }
 		else if(!strcmp(varname,"max_packet_age")){
@@ -531,7 +534,7 @@ static int read_config_file(char *filename){
 			if((get_log_facility(varvalue))==OK){
 				/* re-open log using new facility */
 				closelog();
-				openlog("nsca",LOG_PID|LOG_NDELAY,log_facility); 
+				openlog("nsca",LOG_PID|LOG_NDELAY,log_facility);
 				}
 			else
 				syslog(LOG_WARNING,"Invalid log_facility specified in config file '%s' - Line %d\n",filename,line);
@@ -737,6 +740,7 @@ static int find_rhand(int fd){
 	/* we couldn't find the read handler */
         syslog(LOG_ERR, "Handler stack corrupt - aborting");
         do_exit(STATE_CRITICAL);
+        return -1; /* Does not get executed */
         }
 
 
@@ -753,6 +757,7 @@ static int find_whand(int fd){
 	/* we couldn't find the write handler */
         syslog(LOG_ERR, "Handler stack corrupt - aborting");
         do_exit(STATE_CRITICAL);
+        return -1; /* Does not get executed */
         }
 
 
@@ -761,7 +766,7 @@ static void handle_events(void){
         void (*handler)(int, void *);
         void *data;
         int i, hand;
-        
+
 	/* bail out if necessary */
 	if(sigrestart==TRUE || sigshutdown==TRUE)
 		return;
@@ -805,18 +810,63 @@ static void handle_events(void){
 
 /* wait for incoming connection requests */
 static void wait_for_connections(void) {
-        struct sockaddr_in myname;
+        struct addrinfo hints, *ai;
+        char portbuf[16];
+        char *sa;
+        int r;
         int sock=0;
+        int v6ok=0;
         int flag=1;
 
+        /* check to see if we have ipv6 support */
+        if ((sock = socket(AF_INET6, SOCK_STREAM, 0)) >= 0) {
+                close(sock);
+                v6ok=1;
+        }
+
+        sa = server_address[0] ? server_address : NULL;
+#ifndef IPV6_V6ONLY
+        if (sa == NULL)
+                sa = "0.0.0.0";
+#endif
+
+        /* what address should we bind to? */
+        memset(&hints, 0, sizeof(hints));
+        hints.ai_family = AF_UNSPEC;
+        hints.ai_flags = AI_ADDRCONFIG | AI_PASSIVE;
+        hints.ai_socktype = SOCK_STREAM;
+        hints.ai_protocol = IPPROTO_TCP;
+        if (v6ok && sa == NULL) {
+                hints.ai_family = AF_INET6;
+                hints.ai_flags |= AI_V4MAPPED;
+        }
+        snprintf(portbuf, sizeof(portbuf), "%d", server_port);
+        r = getaddrinfo(sa, portbuf, &hints, &ai);
+        if (r != 0) {
+                syslog(LOG_ERR,"Server address %s port %s: %s",
+                                sa ? sa : "<any>", portbuf, gai_strerror(r));
+                do_exit(STATE_CRITICAL);
+        }
+
         /* create a socket for listening */
-        sock=socket(AF_INET,SOCK_STREAM,0);
+        sock=socket(ai->ai_family,ai->ai_socktype,0);
 
         /* exit if we couldn't create the socket */
         if(sock<0){
                 syslog(LOG_ERR,"Network server socket failure (%d: %s)",errno,strerror(errno));
                 do_exit(STATE_CRITICAL);
                 }
+
+#ifdef IPV6_V6ONLY
+        /* serve both v4 and v6 on a single socket ? */
+        if (sa == NULL && ai->ai_family == AF_INET6) {
+                r = 0;
+                if (setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY, &r, sizeof(r)) < 0) {
+                        syslog(LOG_ERR,"Could not set IPV6_V6ONLY=0 option on socket!\n");
+                        do_exit(STATE_CRITICAL);
+                }
+        }
+#endif
 
         /* set the reuse address flag so we don't get errors when restarting */
         flag=1;
@@ -825,24 +875,13 @@ static void wait_for_connections(void) {
                 do_exit(STATE_CRITICAL);
                 }
 
-        myname.sin_family=AF_INET;
-        myname.sin_port=htons(server_port);
-        bzero(&myname.sin_zero,8);
-
-        /* what address should we bind to? */
-        if(!strlen(server_address))
-                myname.sin_addr.s_addr=INADDR_ANY;
-        else if(!my_inet_aton(server_address,&myname.sin_addr)){
-                syslog(LOG_ERR,"Server address is not a valid IP address\n");
-                do_exit(STATE_CRITICAL);
-                }
-
 
         /* bind the address to the Internet socket */
-        if(bind(sock,(struct sockaddr *)&myname,sizeof(myname))<0){
+        if(bind(sock,ai->ai_addr,ai->ai_addrlen)<0){
                 syslog(LOG_ERR,"Network server bind failure (%d: %s)\n",errno,strerror(errno));
                 do_exit(STATE_CRITICAL);
                 }
+        freeaddrinfo(ai);
 
         /* open the socket for listening */
         if(listen(sock,SOMAXCONN)<0){
@@ -854,7 +893,7 @@ static void wait_for_connections(void) {
         syslog(LOG_NOTICE,"Starting up daemon");
 
         if(debug==TRUE){
-                syslog(LOG_DEBUG,"Listening for connections on port %d\n",htons(myname.sin_port));
+                syslog(LOG_DEBUG,"Listening for connections on port %d\n",server_port);
                 }
 
 	/* socket should be non-blocking for mult-process daemon */
@@ -890,9 +929,10 @@ static void wait_for_connections(void) {
 static void accept_connection(int sock, void *unused){
         int new_sd;
         pid_t pid;
-        struct sockaddr addr;
-        struct sockaddr_in *nptr;
+        struct sockaddr_storage addr;
         socklen_t addrlen;
+        char hostbuf[64], portbuf[16];
+        char *h;
         int rc;
 #ifdef HAVE_LIBWRAP
 	struct request_info req;
@@ -917,7 +957,7 @@ static void accept_connection(int sock, void *unused){
 				return;
 
 			/* try and handle temporary errors */
-			if(errno==EWOULDBLOCK || errno==EINTR || errno==ECHILD){
+			if(errno==EWOULDBLOCK || errno==EINTR || errno==ECHILD || errno==ECONNABORTED){
 				if(mode==MULTI_PROCESS_DAEMON)
 					sleep(1);
 				else
@@ -973,7 +1013,7 @@ static void accept_connection(int sock, void *unused){
 
         /* find out who just connected... */
         addrlen=sizeof(addr);
-        rc=getpeername(new_sd,&addr,&addrlen);
+        rc=getpeername(new_sd,(struct sockaddr *)&addr,&addrlen);
 
         if(rc<0){
                 /* log error to syslog facility */
@@ -986,11 +1026,15 @@ static void accept_connection(int sock, void *unused){
 		return;
                 }
 
-        nptr=(struct sockaddr_in *)&addr;
-
         /* log info to syslog facility */
-        if(debug==TRUE)
-                syslog(LOG_DEBUG,"Connection from %s port %d",inet_ntoa(nptr->sin_addr),nptr->sin_port);
+        if(debug==TRUE) {
+                getnameinfo((struct sockaddr *)&addr, addrlen,
+                        hostbuf, sizeof(hostbuf),
+                        portbuf, sizeof(portbuf),
+                        NI_NUMERICHOST|NI_NUMERICSERV);
+		h = strncmp(hostbuf, "::ffff:", 7) == 0 ? hostbuf + 7 : hostbuf;
+                syslog(LOG_DEBUG,"Connection from %s port %s",h,portbuf);
+                }
 
 	/* handle the connection */
 	if(mode==SINGLE_PROCESS_DAEMON)
@@ -1052,7 +1096,7 @@ static void handle_connection(int sock, void *data){
 
         /* for some reason we didn't send all the bytes we were supposed to */
 	else if(bytes_to_send<sizeof(send_packet)){
-                syslog(LOG_ERR,"Only able to send %d of %d bytes of init packet to client\n",rc,sizeof(send_packet));
+                syslog(LOG_ERR,"Only able to send %d of %lu bytes of init packet to client\n",rc,(unsigned long)sizeof(send_packet));
                 encrypt_cleanup(decryption_method,CI);
                 close(sock);
 		if(mode==MULTI_PROCESS_DAEMON)
@@ -1088,8 +1132,6 @@ static void handle_connection_read(int sock, void *data){
         u_int32_t packet_crc32;
         u_int32_t calculated_crc32;
         struct crypt_instance *CI;
-        time_t packet_time;
-        time_t current_time;
         int16_t return_code;
         unsigned long packet_age=0L;
         int bytes_to_recv;
@@ -1174,7 +1216,6 @@ static void handle_connection_read(int sock, void *data){
         strncpy(host_name,receive_packet.host_name,sizeof(host_name)-1);
         host_name[sizeof(host_name)-1]='\0';
 
-        packet_age=(unsigned long)(current_time-packet_time);
         if(debug==TRUE)
                   syslog(LOG_ERR,"Time difference in packet: %lu seconds for host %s", packet_age, host_name);
         if((max_packet_age>0 && (packet_age>max_packet_age) && (packet_age>=0)) ||
@@ -1196,7 +1237,7 @@ static void handle_connection_read(int sock, void *data){
         /* service description */
         strncpy(svc_description,receive_packet.svc_description,sizeof(svc_description)-1);
         svc_description[sizeof(svc_description)-1]='\0';
-        
+
         /* plugin output */
         strncpy(plugin_output,receive_packet.plugin_output,plugin_length-1);
         plugin_output[plugin_length-1]='\0';
@@ -1234,7 +1275,6 @@ static int write_checkresult_file(char *host_name, char *svc_description, int re
         mode_t new_umask=077;
         mode_t old_umask;
         time_t current_time;
-        char *output_file=NULL;
         int checkresult_file_fd=-1;
         char *checkresult_file=NULL;
         char *checkresult_ok_file=NULL;
@@ -1252,15 +1292,15 @@ static int write_checkresult_file(char *host_name, char *svc_description, int re
                 syslog(LOG_ERR,"Unable to open and write checkresult file '%s', failing back to PIPE",checkresult_file);
                 return write_check_result(host_name,svc_description,return_code,plugin_output,check_time);
                 }
-        
+
 	if(debug==TRUE)
 		syslog(LOG_ERR,"checkresult file '%s' open for write.",checkresult_file);
 
         time(&current_time);
         fprintf(checkresult_file_fp,"### NSCA Passive Check Result ###\n");
         fprintf(checkresult_file_fp,"# Time: %s",ctime(&current_time));
-        fprintf(checkresult_file_fp,"file_time=%d\n\n",current_time);
-        fprintf(checkresult_file_fp,"### %s Check Result ###\n",(svc_description=="")?"Host":"Service");
+        fprintf(checkresult_file_fp,"file_time=%ld\n\n",current_time);
+        fprintf(checkresult_file_fp,"### %s Check Result ###\n",(!*svc_description)?"Host":"Service");
         fprintf(checkresult_file_fp,"host_name=%s\n",host_name);
         if(strcmp(svc_description,""))
                 fprintf(checkresult_file_fp,"service_description=%s\n",svc_description);
@@ -1310,7 +1350,7 @@ static int write_check_result(char *host_name, char *svc_description, int return
                  * the middle of our commands.
                  */
                 fflush(command_file_fp);
-        
+
         return OK;
         }
 
@@ -1326,7 +1366,7 @@ static int open_command_file(void)
 		return OK;
 
 	do
-		fd = open(command_file,O_WRONLY|((append_to_file==TRUE)?O_APPEND:0));
+		fd = open(command_file,O_WRONLY|O_NONBLOCK|((append_to_file==TRUE)?O_APPEND:0));
 	while(fd < 0 && errno == EINTR);
 
 	/* command file doesn't exist - monitoring app probably isn't running... */
@@ -1385,6 +1425,10 @@ int process_arguments(int argc, char **argv){
 		/* show usage */
 		if(!strcmp(argv[x-1],"-h") || !strcmp(argv[x-1],"--help"))
 			show_help=TRUE;
+
+		/* run in foreground mode */
+		else if(!strcmp(argv[x-1],"-f") || !strcmp(argv[x-1],"--foreground"))
+			foreground=TRUE;
 
 		/* show license */
 		else if(!strcmp(argv[x-1],"-l") || !strcmp(argv[x-1],"--license"))
@@ -1458,7 +1502,7 @@ static int write_pid_file(uid_t usr, gid_t grp){
 				return ERROR;
 			        }
 		        }
-	        } 
+	        }
 
 	/* write new pid file */
 	if((fd=open(pid_file,O_WRONLY | O_CREAT,0644))>=0){
@@ -1502,7 +1546,7 @@ static int remove_pid_file(void){
 /* get user information */
 static int get_user_info(const char *user, uid_t *uid){
 	const struct passwd *pw=NULL;
-	
+
 	if(user!=NULL){
 		/* see if this is a user name */
 		if(strspn(user,"0123456789")<strlen(user)){
@@ -1518,7 +1562,7 @@ static int get_user_info(const char *user, uid_t *uid){
 		else
 			*uid=(uid_t)atoi(user);
 
-	        } 
+	        }
 	else
 		*uid=geteuid();
 
@@ -1530,7 +1574,7 @@ static int get_user_info(const char *user, uid_t *uid){
 /* get group information */
 static int get_group_info(const char *group, gid_t *gid){
 	const struct group *grp=NULL;
-	
+
 	/* get group ID */
 	if(group!=NULL){
 		/* see if this is a group name */
@@ -1546,7 +1590,7 @@ static int get_group_info(const char *group, gid_t *gid){
 		/* else we were passed the GID */
 		else
 			*gid=(gid_t)atoi(group);
-	        } 
+	        }
 	else
 		*gid=getegid();
 
@@ -1557,8 +1601,6 @@ static int get_group_info(const char *group, gid_t *gid){
 
 /* drops privileges */
 static int drop_privileges(const char *user, uid_t uid, gid_t gid){
-	struct group *grp;
-	struct passwd *pw;
 
 	/* only drop privileges if we're running as root, so we don't interfere with being debugged while running as some random user */
 	if(getuid()!=0)
@@ -1623,7 +1665,6 @@ void do_chroot(void){
 void sighandler(int sig){
 	static char *sigs[]={"EXIT","HUP","INT","QUIT","ILL","TRAP","ABRT","BUS","FPE","KILL","USR1","SEGV","USR2","PIPE","ALRM","TERM","STKFLT","CHLD","CONT","STOP","TSTP","TTIN","TTOU","URG","XCPU","XFSZ","VTALRM","PROF","WINCH","IO","PWR","UNUSED","ZERR","DEBUG",(char *)NULL};
 	int i;
-	char temp_buffer[MAX_INPUT_BUFFER];
 
 	if(sig<0)
 		sig=-sig;

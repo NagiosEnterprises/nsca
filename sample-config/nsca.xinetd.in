@@ -3,7 +3,7 @@
 service nsca
 {
        	flags           = REUSE
-        socket_type     = stream        
+        socket_type     = stream
        	wait            = no
         user            = @nsca_user@
 	group		= @nsca_grp@
