@@ -540,7 +540,7 @@ void alarm_handler(int sig){
 	char *msg = NULL;
 	asprintf(&msg, "Error: Timeout after %d seconds\n",socket_timeout);
 	/* fprintf(stderr, "Error: Timeout after %d seconds\n",socket_timeout); */
-	write(STDERR_FILENO, msg, sizeof(msg) - 1);
+	write(STDERR_FILENO, msg, strlen(msg));
 
 	do_exit(STATE_CRITICAL);
 }
