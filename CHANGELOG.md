@@ -4,6 +4,7 @@ NSCA Changelog
 2.10 - 2020-04-02
 ------------------
  * Changed release date to ISO format (yyyy-mm-dd) (John Frickson)
+ * Add IPv6 support (Stuart D. Gathman, Miquel van Smoorenburg) 
  * Add --quiet mode to send_nsca (Timo Juhani Lindfors)
  * Add --ds to specify block delimiters (for sending multiple checks at once) in send_nsca (Nate Rini)
  * Add legacy_2_7_mode (for sending to nsca 2.7.x) to send_nsca (Adrian Freihofer, Xavier Bachelot)
