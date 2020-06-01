@@ -411,7 +411,27 @@ int read_init_packet(int sock){
 	return OK;
 }
 
+/* 
+ * Reads command-line argument arg and converts into a delimiter string, stored in result.
+ * If arg represents a decimal or ASCII number, it's converted into the relevant ASCII code
+ * e.g. if arg is "9" or "0x9", result will store "\t"
+ * Otherwise, the first character is used as the delimiter.
+ */
+int parse_delimiter(char *result, size_t result_size, const char *arg) {
+	if((arg[0] > 47 && arg[0] < 58) || arg[0] == 43 || arg[0] == 45) {
+		/* arg is 0-9, +, or - */
+		result[0] = (char) strtol(arg, NULL, 0);
+		if (errno) {
+			return ERROR;
+		}
+	}
+	else {
+	    snprintf(result,result_size,"%s",arg);
+	    delimiter[result_size-1]='\x0';
+	}
 
+	return OK;
+}
 
 /* process command line arguments */
 int process_arguments(int argc, char **argv){
@@ -496,34 +516,18 @@ int process_arguments(int argc, char **argv){
 
 		/* delimiter to use when parsing input */
 		else if(!strcmp(argv[x-1],"-d")){
-			if(x<argc){
-				errno=0;
-				long int d = strtol(argv[x], NULL, 16);
-				if(errno){
-				    snprintf(delimiter,sizeof(delimiter),"%s",argv[x]);
-				    delimiter[sizeof(delimiter)-1]='\x0';
-			        }else delimiter[0]= (char) d;
-				x++;
-				}
-			else {
+			if (parse_delimiter(delimiter, sizeof(delimiter), argv[x])) {
 				return ERROR;
 			}
+			x++;
 		}
 
 		/* delimiter to use when parsing input set */
 		else if(!strcmp(argv[x-1],"-ds")){
-			if(x<argc){
-				errno=0;
-				long int d = strtol(argv[x], NULL, 16);
-				if(errno){
-				    snprintf(block_delimiter,sizeof(block_delimiter),"%s",argv[x]);
-				    block_delimiter[sizeof(block_delimiter)-1]='\x0';
-			        }else block_delimiter[0]= (char) d;
-				x++;
-				}
-			else {
+			if (parse_delimiter(block_delimiter, sizeof(block_delimiter), argv[x])) {
 				return ERROR;
 			}
+			x++;
 		}
 
 		else if(x>2)
