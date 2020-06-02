@@ -1,6 +1,10 @@
 NSCA Changelog
 ==============
 
+2.10.1 -2020-06-??
+------------------
+ * Fixed backward compatibility issue with -d in send_nsca (#44)
+
 2.10 - 2020-04-02
 ------------------
  * Changed release date to ISO format (yyyy-mm-dd) (John Frickson)
