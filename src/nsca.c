@@ -1319,7 +1319,8 @@ static int write_checkresult_file(char *host_name, char *svc_description, int re
         fclose(checkresult_file_fp);
         /* create and close ok file */
         asprintf(&checkresult_ok_file,"%s.ok",checkresult_file);
-        syslog(LOG_DEBUG,"checkresult completion file '%s' open.",checkresult_ok_file);
+        if(debug==TRUE)
+                syslog(LOG_DEBUG,"checkresult completion file '%s' open.",checkresult_ok_file);
         checkresult_ok_file_fp = fopen(checkresult_ok_file,"w");
         fclose(checkresult_ok_file_fp);
         /* reset umask */
