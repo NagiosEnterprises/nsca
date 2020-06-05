@@ -413,13 +413,15 @@ int read_init_packet(int sock){
 
 /* 
  * Reads command-line argument arg and converts into a delimiter string, stored in result.
- * If arg represents a decimal or ASCII number, it's converted into the relevant ASCII code
- * e.g. if arg is "9" or "0x9", result will store "\t"
- * Otherwise, the first character is used as the delimiter.
+ * For any single-character argument, the literal character is used as the argument.
+ * Otherwise, if a number is given, the argument will be converted to a number, and the 
+ * corresponding ASCII code will be used.
+ * e.g. if "9" is given, "9" will be used as a separator, but if "0x9" is given, the tab
+ * character ("\t") will be used instead.
  */
 int parse_delimiter(char *result, size_t result_size, const char *arg) {
-	if((arg[0] > 47 && arg[0] < 58) || arg[0] == 43 || arg[0] == 45) {
-		/* arg is 0-9, +, or - */
+	if (strlen(arg) > 1 && ((arg[0] > 47 && arg[0] < 58) || arg[0] == 43 || arg[0] == 45)) {
+		/* arg starts with 0-9, +, or -, but isn't a single character */
 		result[0] = (char) strtol(arg, NULL, 0);
 		if (errno) {
 			return ERROR;
