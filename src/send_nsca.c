@@ -344,7 +344,10 @@ int main(int argc, char **argv){
 		printf("%d data packet(s) sent to host successfully.\n",total_packets);
 
 	/* exit cleanly */
-	do_exit(STATE_OK);
+	if (total_packets == 0)
+		do_exit(STATE_CRITICAL);
+	else
+		do_exit(STATE_OK);
 
 	/* no compiler complaints here... */
 	return STATE_OK;
