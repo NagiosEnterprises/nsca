@@ -12,6 +12,7 @@ AC_CONFIG_FILES([Makefile
 	src/Makefile
 	package/solaris/Makefile
 	init-script
+	nsca.service
 	sample-config/nsca.cfg
 	sample-config/send_nsca.cfg
 	sample-config/nsca.xinetd])
@@ -268,6 +269,7 @@ AC_PATH_PROG(PERL,perl)
 AC_OUTPUT()
 
 perl subst init-script
+perl subst nsca.service
 perl subst sample-config/nsca.xinetd
 perl subst sample-config/nsca.cfg
 perl subst sample-config/send_nsca.cfg

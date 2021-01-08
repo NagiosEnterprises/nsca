@@ -1,0 +1,12 @@
+[Unit]
+Description=Nagios Service Check Acceptor
+After=syslog.target network.target local-fs.target
+
+[Service]
+EnvironmentFile=-/etc/sysconfig/nsca
+ExecStart=@bindir@/nsca $OPTIONS -c @sysconfdir@/nsca.cfg
+ExecReload=/bin/kill -HUP $MAINPID
+Type=forking
+
+[Install]
+WantedBy=multi-user.target

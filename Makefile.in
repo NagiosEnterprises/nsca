@@ -53,6 +53,7 @@ distclean: clean
 	cd package/solaris; $(MAKE) $@ ; cd ../..
 	rm -f conf.libmcrypttest config.log config.status config.cache init-script Makefile subst $(SRC_INCLUDE)config.h
 	rm -f sample-config/nsca.cfg sample-config/send_nsca.cfg sample-config/nsca.xinetd
+	rm -f nsca.service
 
 devclean: distclean
 
