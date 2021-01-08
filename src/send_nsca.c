@@ -15,10 +15,12 @@
 
 /*#define DEBUG*/
 
+#define _GNU_SOURCE
 #include "../include/common.h"
 #include "../include/config.h"
 #include "../include/netutils.h"
 #include "../include/utils.h"
+#include <stdio.h>
 
 time_t start_time,end_time;
 
