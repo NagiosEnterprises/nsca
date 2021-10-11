@@ -1269,65 +1269,71 @@ static void handle_connection_read(int sock, void *data){
 
 
 /* writes service/host check results to the Nagios checkresult directory */
-static int write_checkresult_file(char *host_name, char *svc_description, int return_code, char *plugin_output, time_t check_time){
-	if(debug==TRUE)
-		syslog(LOG_ERR,"Attempting to write checkresult file");
-        mode_t new_umask=077;
-        mode_t old_umask;
-        time_t current_time;
-        int checkresult_file_fd=-1;
-        char *checkresult_file=NULL;
-        char *checkresult_ok_file=NULL;
-        FILE *checkresult_file_fp=NULL;
-        FILE *checkresult_ok_file_fp=NULL;
-        /* change and store umask */
-        old_umask=umask(new_umask);
+static int write_checkresult_file(char *host_name, char *svc_description, int return_code, char *plugin_output, time_t check_time)
+{
+    if(debug==TRUE) {
+        syslog(LOG_ERR,"Attempting to write checkresult file");
+    }
+    mode_t new_umask=077;
+    mode_t old_umask;
+    time_t current_time;
+    int checkresult_file_fd=-1;
+    char *checkresult_file=NULL;
+    char *checkresult_ok_file=NULL;
+    FILE *checkresult_file_fp=NULL;
+    FILE *checkresult_ok_file_fp=NULL;
+    /* change and store umask */
+    old_umask=umask(new_umask);
 
-        /* create safe checkresult file */
-        asprintf(&checkresult_file,"%s/cXXXXXX",check_result_path);
-        checkresult_file_fd=mkstemp(checkresult_file);
-        if(checkresult_file_fd>0){
-                checkresult_file_fp=fdopen(checkresult_file_fd,"w");
-        } else {
-                syslog(LOG_ERR,"Unable to open and write checkresult file '%s', failing back to PIPE",checkresult_file);
-                return write_check_result(host_name,svc_description,return_code,plugin_output,check_time);
-                }
+    /* create safe checkresult file */
+    asprintf(&checkresult_file,"%s/cXXXXXX",check_result_path);
+    checkresult_file_fd=mkstemp(checkresult_file);
+    if(checkresult_file_fd>0) {
+        checkresult_file_fp=fdopen(checkresult_file_fd,"w");
+    }
+    else {
+        syslog(LOG_ERR,"Unable to open and write checkresult file '%s', failing back to PIPE",checkresult_file);
+        return write_check_result(host_name,svc_description,return_code,plugin_output,check_time);
+    }
 
-	if(debug==TRUE)
-		syslog(LOG_ERR,"checkresult file '%s' open for write.",checkresult_file);
+    if(debug==TRUE) {
+        syslog(LOG_ERR,"checkresult file '%s' open for write.",checkresult_file);
+    }
 
-        time(&current_time);
-        fprintf(checkresult_file_fp,"### NSCA Passive Check Result ###\n");
-        fprintf(checkresult_file_fp,"# Time: %s",ctime(&current_time));
-        fprintf(checkresult_file_fp,"file_time=%ld\n\n",current_time);
-        fprintf(checkresult_file_fp,"### %s Check Result ###\n",(!*svc_description)?"Host":"Service");
-        fprintf(checkresult_file_fp,"host_name=%s\n",host_name);
-        if(strcmp(svc_description,""))
-                fprintf(checkresult_file_fp,"service_description=%s\n",svc_description);
-        fprintf(checkresult_file_fp,"check_type=1\n");
-        fprintf(checkresult_file_fp,"scheduled_check=0\n");
-        fprintf(checkresult_file_fp,"reschedule_check=0\n");
-        /* We have no latency data at this point. */
-        fprintf(checkresult_file_fp,"latency=0\n");
-        fprintf(checkresult_file_fp,"start_time=%lu.%lu\n",check_time,0L);
-        fprintf(checkresult_file_fp,"finish_time=%lu.%lu\n",check_time,0L);
-        fprintf(checkresult_file_fp,"return_code=%d\n",return_code);
-        /* newlines in output are already escaped */
-        fprintf(checkresult_file_fp,"output=%s\n",(plugin_output==NULL)?"":plugin_output);
-        fprintf(checkresult_file_fp,"\n");
+    time(&current_time);
+    fprintf(checkresult_file_fp,"### NSCA Passive Check Result ###\n");
+    fprintf(checkresult_file_fp,"# Time: %s",ctime(&current_time));
+    fprintf(checkresult_file_fp,"file_time=%ld\n\n",current_time);
+    fprintf(checkresult_file_fp,"### %s Check Result ###\n",(!*svc_description)?"Host":"Service");
+    fprintf(checkresult_file_fp,"host_name=%s\n",host_name);
+    if(strcmp(svc_description,"")) {
+        fprintf(checkresult_file_fp,"service_description=%s\n",svc_description);
+    }
+    fprintf(checkresult_file_fp,"check_type=1\n");
+    fprintf(checkresult_file_fp,"scheduled_check=0\n");
+    fprintf(checkresult_file_fp,"reschedule_check=0\n");
+    /* We have no latency data at this point. */
+    fprintf(checkresult_file_fp,"latency=0\n");
+    fprintf(checkresult_file_fp,"start_time=%lu.%lu\n",check_time,0L);
+    fprintf(checkresult_file_fp,"finish_time=%lu.%lu\n",check_time,0L);
+    fprintf(checkresult_file_fp,"return_code=%d\n",return_code);
+    /* newlines in output are already escaped */
+    fprintf(checkresult_file_fp,"output=%s\n",(plugin_output==NULL)?"":plugin_output);
+    fprintf(checkresult_file_fp,"\n");
 
-        fclose(checkresult_file_fp);
-        /* create and close ok file */
-        asprintf(&checkresult_ok_file,"%s.ok",checkresult_file);
-        if(debug==TRUE)
-                syslog(LOG_DEBUG,"checkresult completion file '%s' open.",checkresult_ok_file);
-        checkresult_ok_file_fp = fopen(checkresult_ok_file,"w");
-        fclose(checkresult_ok_file_fp);
-        /* reset umask */
-        umask(old_umask);
+    fclose(checkresult_file_fp);
+    /* create and close ok file */
+    asprintf(&checkresult_ok_file,"%s.ok",checkresult_file);
+    if(debug==TRUE) {
+        syslog(LOG_DEBUG,"checkresult completion file '%s' open.",checkresult_ok_file);
+    }
+    checkresult_ok_file_fp = fopen(checkresult_ok_file,"w");
+    fclose(checkresult_ok_file_fp);
+    /* reset umask */
+    umask(old_umask);
 
-        return OK;
-        }
+    return OK;
+}
 
 /* writes service/host check results to the Nagios command file */
 static int write_check_result(char *host_name, char *svc_description, int return_code, char *plugin_output, time_t check_time){
