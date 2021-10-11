@@ -37,6 +37,7 @@ static char password[MAX_INPUT_BUFFER]="";
 static enum { OPTIONS_ERROR, SINGLE_PROCESS_DAEMON, MULTI_PROCESS_DAEMON, INETD } mode=SINGLE_PROCESS_DAEMON;
 static int foreground=FALSE;
 static int debug=FALSE;
+static int strict_mode_spoofing=FALSE;
 static int aggregate_writes=FALSE;
 static int decryption_method=ENCRYPT_XOR;
 static int append_to_file=FALSE;
@@ -477,6 +478,14 @@ static int read_config_file(char *filename){
                         else
                                 debug=FALSE;
                         }
+        else if (strstr(input_buffer, "strict_mode_spoofing")) {
+                        if (atoi(varvalue) > 0) {
+                            strict_mode_spoofing = TRUE;
+                        }
+                        else {
+                            strict_mode_spoofing = FALSE;
+                        }
+        }
 		else if(strstr(input_buffer,"aggregate_writes")){
                         if(atoi(varvalue)>0)
                                 aggregate_writes=TRUE;
@@ -1257,6 +1266,88 @@ static void handle_connection_read(int sock, void *data){
 		else
 			syslog(LOG_NOTICE,"SERVICE CHECK -> Host Name: '%s', Service Description: '%s', Return Code: '%d', Output: '%s'",host_name,svc_description,return_code,plugin_output);
 	        }
+
+        if (strict_mode_spoofing) {
+
+            //int success = strict_mode_spoofing_verify_spoofing();
+            // Retrieve the address associated with the socket fd
+
+            /* Note: we did run getpeername() earlier in the program, but adding
+             * parameters and passing data around is difficult due to the event 
+             * processing code. (Search for 'rhand' to see the relevant code.)
+             */ 
+
+            struct sockaddr_storage peer_addr;
+            int peer_addr_len;
+            int status;
+            peer_addr_len = sizeof(peer_addr);
+            status = getpeername(sock, (struct sockaddr *)&peer_addr, &peer_addr_len);
+            if (status == -1) {
+                char *errmsg = strerror(errno);
+                syslog(LOG_ERR, "Strict mode returning early - getpeername() failed: %s", errmsg);
+                return;
+            }
+            // Network-order bytes are in addr.sin_addr
+
+            // Retrieve the address associated withe the host name we just read
+            struct addrinfo hints, *ai;
+
+            memset(&hints, 0, sizeof(hints));
+            hints.ai_family = peer_addr.ss_family;
+            hints.ai_flags = AI_ADDRCONFIG | AI_PASSIVE;
+            hints.ai_socktype = SOCK_STREAM;
+            hints.ai_protocol = IPPROTO_TCP;
+
+            status = getaddrinfo(host_name, NULL, &hints, &ai);
+
+            // A hostname can have multiple addresses.
+            // We don't have port information, so we'll check all of them
+            int found_match = FALSE;
+            for (; ai != NULL; ai = ai->ai_next) {
+                if (ai->ai_addr->sa_family != peer_addr.ss_family) {
+                    // Should already be filtered, but we'll check for it anyways
+                    continue;
+                }
+
+                if (ai->ai_addr->sa_family == AF_INET) {
+                    struct sockaddr_in *peer_as_ipv4 = ((struct sockaddr_in *) &peer_addr);
+                    struct sockaddr_in *claimed_as_ipv4 = ((struct sockaddr_in *) ai->ai_addr);
+                    unsigned long peer_network_order = peer_as_ipv4->sin_addr.s_addr;
+                    unsigned long claimed_network_order = claimed_as_ipv4->sin_addr.s_addr;
+
+                    // Both addresses should be in network order, so just compare longs
+                    if (peer_network_order == claimed_network_order) {
+                        found_match = TRUE;
+                        break;
+                    }
+                }
+                else if (ai->ai_addr->sa_family == AF_INET6) {
+                    struct sockaddr_in6 *peer_as_ipv6 = ((struct sockaddr_in6 *) &peer_addr);
+                    struct sockaddr_in6 *claimed_as_ipv6 = ((struct sockaddr_in6 *) ai->ai_addr);
+                    unsigned char *peer_network_order = peer_as_ipv6->sin6_addr.s6_addr;
+                    unsigned char *claimed_network_order = claimed_as_ipv6->sin6_addr.s6_addr;
+
+                    int ipv6_no_differences = TRUE;
+                    int i;
+                    for (i = 0; i < 16; ++i)
+                    {
+                        ipv6_no_differences &= peer_network_order[i] == claimed_network_order[i];
+                    }
+
+                    if (ipv6_no_differences) {
+                        found_match = TRUE;
+                        break;
+                    }
+                }
+            }
+
+            // If they don't match, reject the message and log the interaction
+            if (found_match == FALSE) {
+                syslog(LOG_WARNING, "Strict mode - dropped check for %s due to non-matching host name.", host_name);
+                return;
+            }
+
+        }
 
         /* write the check result to the external command file.
          * Note: it's OK to hang at this point if the write doesn't succeed, as there's
