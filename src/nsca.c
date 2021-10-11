@@ -926,35 +926,38 @@ static void wait_for_connections(void) {
 
 
 
-static void accept_connection(int sock, void *unused){
-        int new_sd;
-        pid_t pid;
-        struct sockaddr_storage addr;
-        socklen_t addrlen;
-        char hostbuf[64], portbuf[16];
-        char *h;
-        int rc;
+static void accept_connection(int sock, void *unused) {
+    int new_sd;
+    pid_t pid;
+    struct sockaddr_storage addr;
+    socklen_t addrlen;
+    char hostbuf[64], portbuf[16];
+    char *h;
+    int rc;
 #ifdef HAVE_LIBWRAP
 	struct request_info req;
 #endif
 
 	/* DO NOT REMOVE! 01/29/2007 single process daemon will fail if this is removed */
-        if(mode==SINGLE_PROCESS_DAEMON)
-                register_read_handler(sock,accept_connection,NULL);
+    if(mode==SINGLE_PROCESS_DAEMON) {
+        register_read_handler(sock,accept_connection,NULL);
+    }
 
-        /* wait for a connection request */
-        while(1){
+    /* wait for a connection request */
+    while(1) {
 
-		/* we got a live one... */
-                if((new_sd=accept(sock,0,0))>=0)
-                        break;
+	/* we got a live one... */
+        if((new_sd=accept(sock,0,0))>=0) {
+            break;
+        }
 
-		/* handle the error */
-		else{
+	/* handle the error */
+	    else {
 
 			/* bail out if necessary */
-			if(sigrestart==TRUE || sigshutdown==TRUE)
+			if(sigrestart==TRUE || sigshutdown==TRUE) {
 				return;
+            }
 
 			/* try and handle temporary errors */
 			if(errno==EWOULDBLOCK || errno==EINTR || errno==ECHILD || errno==ECONNABORTED){
@@ -962,24 +965,26 @@ static void accept_connection(int sock, void *unused){
 					sleep(1);
 				else
 					return;
-				}
-			else
+		    }
+			else {
 				break;
-			}
-                }
+            }
+		}
+    }
 
-        /* hey, there was an error... */
-        if(new_sd<0){
+    /* hey, there was an error... */
+    if(new_sd<0){
 
-                /* log error to syslog facility */
-                syslog(LOG_ERR,"Network server accept failure (%d: %s)",errno,strerror(errno));
+            /* log error to syslog facility */
+            syslog(LOG_ERR,"Network server accept failure (%d: %s)",errno,strerror(errno));
 
-                /* close socket prior to exiting */
-                close(sock);
-		if(mode==MULTI_PROCESS_DAEMON)
+            /* close socket prior to exiting */
+            close(sock);
+		if(mode==MULTI_PROCESS_DAEMON) {
 			do_exit(STATE_CRITICAL);
+        }
 		return;
-                }
+    }
 
 #ifdef HAVE_LIBWRAP
 
@@ -992,60 +997,63 @@ static void accept_connection(int sock, void *unused){
 		syslog(LOG_ERR, "refused connect from %s", eval_client(&req));
 		close(new_sd);
 		return;
-		}
+	}
 #endif
 
 
-        /* fork() if we have to... */
-        if(mode==MULTI_PROCESS_DAEMON){
+    /* fork() if we have to... */
+    if(mode==MULTI_PROCESS_DAEMON){
 
-                pid=fork();
-                if(pid){
-                        /* parent doesn't need the new connection */
-                        close(new_sd);
-                        return;
-                        }
-		else{
-                        /* child does not need to listen for connections */
-                        close(sock);
-                        }
-                }
+        pid=fork();
+        if(pid) {
+            /* parent doesn't need the new connection */
+            close(new_sd);
+            return;
+        }
+        else{
+            /* child does not need to listen for connections */
+            close(sock);
+        }
+    }
 
-        /* find out who just connected... */
-        addrlen=sizeof(addr);
-        rc=getpeername(new_sd,(struct sockaddr *)&addr,&addrlen);
+    /* find out who just connected... */
+    addrlen=sizeof(addr);
+    rc=getpeername(new_sd,(struct sockaddr *)&addr,&addrlen);
 
-        if(rc<0){
-                /* log error to syslog facility */
-                syslog(LOG_ERR,"Error: Network server getpeername() failure (%d: %s)",errno,strerror(errno));
+    if(rc<0){
+        /* log error to syslog facility */
+        syslog(LOG_ERR,"Error: Network server getpeername() failure (%d: %s)",errno,strerror(errno));
 
-                /* close socket prior to exiting */
-                close(new_sd);
-		if(mode==MULTI_PROCESS_DAEMON)
+        /* close socket prior to exiting */
+        close(new_sd);
+		if(mode==MULTI_PROCESS_DAEMON) {
 			do_exit(STATE_CRITICAL);
+        }
 		return;
-                }
+    }
 
-        /* log info to syslog facility */
-        if(debug==TRUE) {
-                getnameinfo((struct sockaddr *)&addr, addrlen,
-                        hostbuf, sizeof(hostbuf),
-                        portbuf, sizeof(portbuf),
-                        NI_NUMERICHOST|NI_NUMERICSERV);
-		h = strncmp(hostbuf, "::ffff:", 7) == 0 ? hostbuf + 7 : hostbuf;
-                syslog(LOG_DEBUG,"Connection from %s port %s",h,portbuf);
-                }
+    /* log info to syslog facility */
+    if(debug==TRUE) {
+        getnameinfo((struct sockaddr *)&addr, addrlen,
+                    hostbuf, sizeof(hostbuf),
+                    portbuf, sizeof(portbuf),
+                    NI_NUMERICHOST|NI_NUMERICSERV);
+	    h = strncmp(hostbuf, "::ffff:", 7) == 0 ? hostbuf + 7 : hostbuf;
+        syslog(LOG_DEBUG,"Connection from %s port %s",h,portbuf);
+    }
 
 	/* handle the connection */
-	if(mode==SINGLE_PROCESS_DAEMON)
+	if(mode==SINGLE_PROCESS_DAEMON) {
 		/* mark the connection as ready to be handled */
 		register_write_handler(new_sd, handle_connection, NULL);
-	else
+    }
+	else {
 		/* handle the client connection */
 		handle_connection(new_sd, NULL);
+    }
 
 	return;
-        }
+}
 
 
 
