@@ -1219,6 +1219,69 @@ static int strict_mode_verify_spoofing(int sock, char *host_name)
     return FALSE;
 } 
 
+/* Convert newlines into the literals '\' and 'n'. Nagios Core runs the inverse
+ * of this function in both check result files and in the external commands file.
+ */
+char *escape_newlines(const char *rawbuf) {
+    char *newbuf = NULL;
+    int x;
+    int y;
+
+    if (rawbuf == NULL)
+        return NULL;
+
+    /* Count the escapes we need to make. */
+    for (x = 0, y = 0; rawbuf[x]; x++) {
+        if (rawbuf[x] == '\\' || rawbuf[x] == '\n')
+            y++;
+        }
+
+    /* Just duplicate the string if we have nothing to escape. */
+    if (y == 0)
+        return strdup(rawbuf);
+
+    /* Allocate memory for the new string with escapes. */
+    if ((newbuf = malloc(x + y + 1)) == NULL)
+        return NULL;
+
+    for (x = 0, y = 0; rawbuf[x]; x++) {
+
+        /* Escape backslashes. */
+        if (rawbuf[x] == '\\') {
+            newbuf[y++] = '\\';
+            newbuf[y++] = '\\';
+            }
+
+        /* Escape newlines. */
+        else if (rawbuf[x] == '\n') {
+            newbuf[y++] = '\\';
+            newbuf[y++] = 'n';
+            }
+
+        else
+            newbuf[y++] = rawbuf[x];
+        }
+    newbuf[y] = '\0';
+
+    return newbuf;
+}
+
+/* If the condition in this loop is triggered, the input is already malformed 
+ * for the purposes of writing to the external commands file. Let's just get
+ * rid of whatever weird thing was happening there.
+ */
+static inline void truncate_newlines(char *to_strip, size_t maxlen)
+{
+    size_t i;
+    for (i = 0; i < maxlen && to_strip[i] != 0; ++i)
+    {
+        if (to_strip[i] == '\n')
+        {
+            to_strip[i] = 0;
+        }
+    }
+}
+
 /* handle reading from a client connection */
 static void handle_connection_read(int sock, void *data){
         data_packet receive_packet;
@@ -1362,11 +1425,18 @@ static void handle_connection_read(int sock, void *data){
          * only ever write one command at a time into the pipe.
          */
         //syslog(LOG_ERR,"'%s' (%s) []",check_result_path, strlen(check_result_path));
+        truncate_newlines(host_name, MAX_HOSTNAME_LENGTH);
+        truncate_newlines(svc_description, MAX_DESCRIPTION_LENGTH);
+        char *plugin_output_escaped = escape_newlines(plugin_output);
+
+
         if (check_result_path==NULL){
-            write_check_result(host_name,svc_description,return_code,plugin_output,time(NULL));
+            write_check_result(host_name,svc_description,return_code,plugin_output_escaped,time(NULL));
         }else{
-            write_checkresult_file(host_name,svc_description,return_code,plugin_output,time(NULL));
+            write_checkresult_file(host_name,svc_description,return_code,plugin_output_escaped,time(NULL));
         }
+
+        free(plugin_output_escaped);
 
 	return;
 }
