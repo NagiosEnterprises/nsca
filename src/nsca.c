@@ -1141,7 +1141,83 @@ static void handle_connection(int sock, void *data){
 	return;
         }
 
+/* Takes the peer socket and the host_name that the peer is claiming for a check result.
+ * Returns TRUE iff the peer socket's address matches one of the host_name's addresses
+ * according to getaddrinfo().
+ */
+static int strict_mode_verify_spoofing(int sock, char *host_name)
+{
 
+    // Retrieve the address associated with the socket fd
+
+    /* Note: we did run getpeername() earlier in the program, but adding
+     * parameters and passing data around is difficult due to the event 
+     * processing code. (Search for 'rhand' to see the relevant code.)
+     */ 
+
+    struct sockaddr_storage peer_addr;
+    int peer_addr_len;
+    int status;
+    peer_addr_len = sizeof(peer_addr);
+    status = getpeername(sock, (struct sockaddr *)&peer_addr, &peer_addr_len);
+    if (status == -1) {
+        char *errmsg = strerror(errno);
+        syslog(LOG_ERR, "Strict mode returning early - getpeername() failed: %s", errmsg);
+        return FALSE;
+    }
+    // Network-order bytes are in addr.sin_addr
+
+    // Retrieve the address associated withe the host name we just read
+    struct addrinfo hints, *ai;
+
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = peer_addr.ss_family;
+    hints.ai_flags = AI_ADDRCONFIG | AI_PASSIVE;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_protocol = IPPROTO_TCP;
+
+    status = getaddrinfo(host_name, NULL, &hints, &ai);
+
+    // A hostname can have multiple addresses.
+    // We don't have port information, so we'll check all of them
+    for (; ai != NULL; ai = ai->ai_next) {
+        if (ai->ai_addr->sa_family != peer_addr.ss_family) {
+            // Should already be filtered, but we'll check for it anyways
+            continue;
+        }
+
+        if (ai->ai_addr->sa_family == AF_INET) {
+            struct sockaddr_in *peer_as_ipv4 = ((struct sockaddr_in *) &peer_addr);
+            struct sockaddr_in *claimed_as_ipv4 = ((struct sockaddr_in *) ai->ai_addr);
+            unsigned long peer_network_order = peer_as_ipv4->sin_addr.s_addr;
+            unsigned long claimed_network_order = claimed_as_ipv4->sin_addr.s_addr;
+
+            // Both addresses should be in network order, so just compare longs
+            if (peer_network_order == claimed_network_order) {
+                return TRUE;
+            }
+        }
+        else if (ai->ai_addr->sa_family == AF_INET6) {
+            struct sockaddr_in6 *peer_as_ipv6 = ((struct sockaddr_in6 *) &peer_addr);
+            struct sockaddr_in6 *claimed_as_ipv6 = ((struct sockaddr_in6 *) ai->ai_addr);
+            unsigned char *peer_network_order = peer_as_ipv6->sin6_addr.s6_addr;
+            unsigned char *claimed_network_order = claimed_as_ipv6->sin6_addr.s6_addr;
+
+            int ipv6_no_differences = TRUE;
+            int i;
+            for (i = 0; i < 16; ++i)
+            {
+                ipv6_no_differences &= peer_network_order[i] == claimed_network_order[i];
+            }
+
+            if (ipv6_no_differences) {
+                return TRUE;
+            }
+        }
+    }
+
+    return FALSE;
+} 
 
 /* handle reading from a client connection */
 static void handle_connection_read(int sock, void *data){
@@ -1269,77 +1345,7 @@ static void handle_connection_read(int sock, void *data){
 
         if (strict_mode_spoofing) {
 
-            //int success = strict_mode_spoofing_verify_spoofing();
-            // Retrieve the address associated with the socket fd
-
-            /* Note: we did run getpeername() earlier in the program, but adding
-             * parameters and passing data around is difficult due to the event 
-             * processing code. (Search for 'rhand' to see the relevant code.)
-             */ 
-
-            struct sockaddr_storage peer_addr;
-            int peer_addr_len;
-            int status;
-            peer_addr_len = sizeof(peer_addr);
-            status = getpeername(sock, (struct sockaddr *)&peer_addr, &peer_addr_len);
-            if (status == -1) {
-                char *errmsg = strerror(errno);
-                syslog(LOG_ERR, "Strict mode returning early - getpeername() failed: %s", errmsg);
-                return;
-            }
-            // Network-order bytes are in addr.sin_addr
-
-            // Retrieve the address associated withe the host name we just read
-            struct addrinfo hints, *ai;
-
-            memset(&hints, 0, sizeof(hints));
-            hints.ai_family = peer_addr.ss_family;
-            hints.ai_flags = AI_ADDRCONFIG | AI_PASSIVE;
-            hints.ai_socktype = SOCK_STREAM;
-            hints.ai_protocol = IPPROTO_TCP;
-
-            status = getaddrinfo(host_name, NULL, &hints, &ai);
-
-            // A hostname can have multiple addresses.
-            // We don't have port information, so we'll check all of them
-            int found_match = FALSE;
-            for (; ai != NULL; ai = ai->ai_next) {
-                if (ai->ai_addr->sa_family != peer_addr.ss_family) {
-                    // Should already be filtered, but we'll check for it anyways
-                    continue;
-                }
-
-                if (ai->ai_addr->sa_family == AF_INET) {
-                    struct sockaddr_in *peer_as_ipv4 = ((struct sockaddr_in *) &peer_addr);
-                    struct sockaddr_in *claimed_as_ipv4 = ((struct sockaddr_in *) ai->ai_addr);
-                    unsigned long peer_network_order = peer_as_ipv4->sin_addr.s_addr;
-                    unsigned long claimed_network_order = claimed_as_ipv4->sin_addr.s_addr;
-
-                    // Both addresses should be in network order, so just compare longs
-                    if (peer_network_order == claimed_network_order) {
-                        found_match = TRUE;
-                        break;
-                    }
-                }
-                else if (ai->ai_addr->sa_family == AF_INET6) {
-                    struct sockaddr_in6 *peer_as_ipv6 = ((struct sockaddr_in6 *) &peer_addr);
-                    struct sockaddr_in6 *claimed_as_ipv6 = ((struct sockaddr_in6 *) ai->ai_addr);
-                    unsigned char *peer_network_order = peer_as_ipv6->sin6_addr.s6_addr;
-                    unsigned char *claimed_network_order = claimed_as_ipv6->sin6_addr.s6_addr;
-
-                    int ipv6_no_differences = TRUE;
-                    int i;
-                    for (i = 0; i < 16; ++i)
-                    {
-                        ipv6_no_differences &= peer_network_order[i] == claimed_network_order[i];
-                    }
-
-                    if (ipv6_no_differences) {
-                        found_match = TRUE;
-                        break;
-                    }
-                }
-            }
+            int found_match = strict_mode_verify_spoofing(sock, host_name);
 
             // If they don't match, reject the message and log the interaction
             if (found_match == FALSE) {
@@ -1357,13 +1363,13 @@ static void handle_connection_read(int sock, void *data){
          */
         //syslog(LOG_ERR,"'%s' (%s) []",check_result_path, strlen(check_result_path));
         if (check_result_path==NULL){
-        write_check_result(host_name,svc_description,return_code,plugin_output,time(NULL));
+            write_check_result(host_name,svc_description,return_code,plugin_output,time(NULL));
         }else{
-                write_checkresult_file(host_name,svc_description,return_code,plugin_output,time(NULL));
+            write_checkresult_file(host_name,svc_description,return_code,plugin_output,time(NULL));
         }
 
 	return;
-        }
+}
 
 
 
@@ -1435,30 +1441,35 @@ static int write_checkresult_file(char *host_name, char *svc_description, int re
 }
 
 /* writes service/host check results to the Nagios command file */
-static int write_check_result(char *host_name, char *svc_description, int return_code, char *plugin_output, time_t check_time){
-	if(debug==TRUE)
+static int write_check_result(char *host_name, char *svc_description, int return_code, char *plugin_output, time_t check_time) {
+	if(debug==TRUE) {
 		syslog(LOG_ERR,"Attempting to write to nagios command pipe");
-        if(aggregate_writes==FALSE){
-                if(open_command_file()==ERROR)
-                        return ERROR;
-                }
+    }
+    if(aggregate_writes==FALSE){
+        if(open_command_file()==ERROR) {
+            return ERROR;
+        }
+    }
 
-	if(!strcmp(svc_description,""))
+	if(!strcmp(svc_description,"")) {
 		fprintf(command_file_fp,"[%lu] PROCESS_HOST_CHECK_RESULT;%s;%d;%s\n",(unsigned long)check_time,host_name,return_code,plugin_output);
+    }
 	else{
 		fprintf(command_file_fp,"[%lu] PROCESS_SERVICE_CHECK_RESULT;%s;%s;%d;%s\n",(unsigned long)check_time,host_name,svc_description,return_code,plugin_output);
-                }
-        if(aggregate_writes==FALSE)
-                close_command_file();
-        else
-                /* if we don't fflush() then we're writing in 4k non-CR-terminated blocks, and
-                 * anything else (eg. pscwatch) which writes to the file will be writing into
-                 * the middle of our commands.
-                 */
-                fflush(command_file_fp);
+    }
+    if(aggregate_writes==FALSE) {
+        close_command_file();
+    }
+    else {
+        /* if we don't fflush() then we're writing in 4k non-CR-terminated blocks, and
+         * anything else (eg. pscwatch) which writes to the file will be writing into
+         * the middle of our commands.
+         */
+        fflush(command_file_fp);
+    }
 
-        return OK;
-        }
+    return OK;
+}
 
 
 
