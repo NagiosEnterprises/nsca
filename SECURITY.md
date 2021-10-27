@@ -150,7 +150,17 @@ sent to the client, it can verify that the data the client
 sends to it has been properly encrypted.  This provides
 a reasonable mechanism of preventing replay attacks.
 
+Strict Mode
+-----------
 
+As of NSCA 2.10.1, you can now specify the `strict_mode_spoofing`
+directive in nsca.cfg. This will cause the daemon to run DNS queries
+for the connecting send_nsca client and for the host_name that it submits. 
+If they do not have any IP addresses in common, the check result will
+be discarded. Note that this will have performance implications, as
+NSCA does not maintain its own DNS cache. However, if your host names
+in Nagios Core match their FQDNs or IP Addresses, this can help to
+prevent check spoofing.
 
 Caveats
 -------

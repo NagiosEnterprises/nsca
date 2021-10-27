@@ -1,9 +1,11 @@
 NSCA Changelog
 ==============
 
-2.10.1 -2020-06-??
+2.10.1 - 2021-10-27
 ------------------
  * Fixed backward compatibility issue with -d in send_nsca (#44)
+ * Restored and fixed newline escaping, which was removed in 2.10
+ * Added the strict_mode_spoofing directive. See SECURITY for details. 
 
 2.10 - 2020-04-02
 ------------------
