@@ -1,6 +1,12 @@
 NSCA Changelog
 ==============
 
+2.10.2 - 2022-06-06
+-------------------
+ * Fixed exiting with STATE_OK when no packets were successfully sent
+ * Added systemd service file
+ * Fixed compilation warning
+
 2.10.1 - 2021-10-27
 ------------------
  * Fixed backward compatibility issue with -d in send_nsca (#44)
