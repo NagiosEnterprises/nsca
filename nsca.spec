@@ -1,5 +1,5 @@
 %define name nsca
-%define version 2.10.1
+%define version 2.10.2
 %define release 1
 %define nsusr nagios
 %define nsgrp nagios
