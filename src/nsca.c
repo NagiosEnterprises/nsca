@@ -225,15 +225,17 @@ int main(int argc, char **argv){
 			signal(SIGHUP,sighandler);
 #endif /* HAVE_SIGACTION */
 
-			/* close standard file descriptors */
-                        close(0);
-                        close(1);
-                        close(2);
+                        if (!foreground) {
+                                /* close standard file descriptors */
+                                close(0);
+                                close(1);
+                                close(2);
 
-			/* redirect standard descriptors to /dev/null */
-			open("/dev/null",O_RDONLY);
-			open("/dev/null",O_WRONLY);
-			open("/dev/null",O_WRONLY);
+                                /* redirect standard descriptors to /dev/null */
+                                open("/dev/null",O_RDONLY);
+                                open("/dev/null",O_WRONLY);
+                                open("/dev/null",O_WRONLY);
+                        }
 
 			/* get group information before chrooting */
 			get_user_info(nsca_user,&uid);
@@ -1685,6 +1687,7 @@ static int write_pid_file(uid_t usr, gid_t grp){
 
 			/* previous process is still running */
 			else{
+                                if (foreground) printf("There's already an NSCA server running (PID %lu).  Bailing out...\n",(unsigned long)pid);
 				syslog(LOG_ERR,"There's already an NSCA server running (PID %lu).  Bailing out...",(unsigned long)pid);
 				return ERROR;
 			        }
