@@ -1,6 +1,9 @@
 NSCA Changelog
 ==============
-
+2.10.3 - 2024-XX-XX
+-------------------
+ * Improved clarity of error when running in the foreground while already running in the background
+ 
 2.10.2 - 2022-06-06
 -------------------
  * Fixed exiting with STATE_OK when no packets were successfully sent
