@@ -1,6 +1,10 @@
 NSCA Changelog
 ==============
 
+2.10.3 - 2024-08-??
+-------------------
+* Allow NSCA to bind to the loopback address (Imre Jonk)
+
 2.10.2 - 2022-06-06
 -------------------
  * Fixed exiting with STATE_OK when no packets were successfully sent
