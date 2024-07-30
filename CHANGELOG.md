@@ -1,6 +1,6 @@
 NSCA Changelog
 ==============
-2.10.3 - 2024-XX-XX
+2.10.3 - 2024-07-30
 -------------------
  * Improved clarity of error when running in the foreground while already running in the background
  
