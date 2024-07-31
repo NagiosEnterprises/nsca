@@ -28,4 +28,6 @@ A full list of authors, contributors, and maintainers is as follows:
  * Ralf Ertzinger
  * David Luyer
  * Jay McCarthy
+ * Griffin Westerman (Nagios)
  * Imre Jonk
+
