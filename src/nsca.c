@@ -844,7 +844,7 @@ static void wait_for_connections(void) {
         /* what address should we bind to? */
         memset(&hints, 0, sizeof(hints));
         hints.ai_family = AF_UNSPEC;
-        hints.ai_flags = AI_ADDRCONFIG | AI_PASSIVE;
+        hints.ai_flags = AI_PASSIVE;
         hints.ai_socktype = SOCK_STREAM;
         hints.ai_protocol = IPPROTO_TCP;
         if (v6ok && sa == NULL) {
