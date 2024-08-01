@@ -1,7 +1,7 @@
 NSCA Changelog
 ==============
 
-2.10.3 - 2024-08-02
+2.10.3 - 2024-08-01
 -------------------
  * Allow NSCA to bind to the loopback address (Imre Jonk)
  * Improved clarity of error when running in the foreground while already running in the background (Griffin Westerman)

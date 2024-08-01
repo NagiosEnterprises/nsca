@@ -2,7 +2,7 @@
  *
  * COMMON.H - NSCA Common Include File
  * Copyright (c) 1999-2003 Ethan Galstad (nagios@nagios.org)
- * Last Modified: 2024-07-30
+ * Last Modified: 2024-08-01
  *
  * License:
  *
@@ -25,7 +25,7 @@
 
 
 #define PROGRAM_VERSION "2.10.3"
-#define MODIFICATION_DATE "2024-07-30"
+#define MODIFICATION_DATE "2024-08-01"
 
 
 #define OK		0
