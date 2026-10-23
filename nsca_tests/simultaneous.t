@@ -37,7 +37,7 @@ my $Fork = Parallel::Forker->new;
 $SIG{CHLD} = sub { $Fork->sig_child; };
 $SIG{TERM} = sub { $Fork->kill_tree_all('TERM') if $Fork; die "Quitting..."; };
 
-foreach my $type qw(--single --daemon) {
+foreach my $type (qw(--single --daemon)) {
 	my $expected = [];
 	my $nsca = NSCATest->new( config => "basic", timeout => $timeout );
 

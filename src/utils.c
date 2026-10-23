@@ -36,10 +36,6 @@
 /*#define DEBUG*/
 
 static unsigned long crc32_table[256];
-#ifdef HAVE_LIBMCRYPT
-static volatile sig_atomic_t mcrypt_initialized=FALSE;
-#endif
-
 static void generate_transmitted_iv(char *transmitted_iv);
 
 /* build the crc table - must be called before calculating the crc value */
@@ -106,6 +102,9 @@ int encrypt_init(char *password,int encryption_method,char *received_iv,struct c
                 memcpy(CI->transmitted_iv,received_iv,TRANSMITTED_IV_SIZE);
 
 #ifdef HAVE_LIBMCRYPT
+        CI->td=MCRYPT_FAILED;                   /* nothing to clean up until the module is opened */
+        CI->key=NULL;
+        CI->IV=NULL;
         CI->blocksize=1;                        /* block size = 1 byte w/ CFB mode */
         CI->keysize=7;                          /* default to 56 bit key length */
         CI->mcrypt_mode="cfb";                  /* CFB = 8-bit cipher-feedback mode */
@@ -196,6 +195,8 @@ int encrypt_init(char *password,int encryption_method,char *received_iv,struct c
         /* open encryption module */
         if((CI->td=mcrypt_module_open(CI->mcrypt_algorithm,NULL,CI->mcrypt_mode,NULL))==MCRYPT_FAILED){
                 syslog(LOG_ERR,"Could not open mcrypt algorithm '%s' with mode '%s'",CI->mcrypt_algorithm,CI->mcrypt_mode);
+                encrypt_cleanup(encryption_method,CI);
+                *CIptr=NULL;
                 return ERROR;
                 }
 
@@ -207,12 +208,16 @@ int encrypt_init(char *password,int encryption_method,char *received_iv,struct c
         iv_size=mcrypt_enc_get_iv_size(CI->td);
         if(iv_size>TRANSMITTED_IV_SIZE){
                 syslog(LOG_ERR,"IV size for crypto algorithm exceeds limits");
+                encrypt_cleanup(encryption_method,CI);
+                *CIptr=NULL;
                 return ERROR;
                 }
 
         /* allocate memory for IV buffer */
         if((CI->IV=(char *)malloc(iv_size))==NULL){
                 syslog(LOG_ERR,"Could not allocate memory for IV buffer");
+                encrypt_cleanup(encryption_method,CI);
+                *CIptr=NULL;
                 return ERROR;
                 }
 
@@ -226,6 +231,8 @@ int encrypt_init(char *password,int encryption_method,char *received_iv,struct c
         /* generate an encryption/description key using the password */
         if((CI->key=(char *)malloc(CI->keysize))==NULL){
                 syslog(LOG_ERR,"Could not allocate memory for encryption/decryption key");
+                encrypt_cleanup(encryption_method,CI);
+                *CIptr=NULL;
                 return ERROR;
                 }
         bzero(CI->key,CI->keysize);
@@ -236,8 +243,12 @@ int encrypt_init(char *password,int encryption_method,char *received_iv,struct c
                 strncpy(CI->key,password,strlen(password));
 
         /* initialize encryption buffers */
-        mcrypt_generic_init(CI->td,CI->key,CI->keysize,CI->IV);
-        mcrypt_initialized=TRUE;
+        if(mcrypt_generic_init(CI->td,CI->key,CI->keysize,CI->IV)<0){
+                syslog(LOG_ERR,"Could not initialize mcrypt algorithm '%s'",CI->mcrypt_algorithm);
+                encrypt_cleanup(encryption_method,CI);
+                *CIptr=NULL;
+                return ERROR;
+                }
 #endif
 
         return OK;
@@ -255,8 +266,12 @@ void encrypt_cleanup(int encryption_method, struct crypt_instance *CI){
 #ifdef HAVE_LIBMCRYPT
         /* mcrypt cleanup */
         if(encryption_method!=ENCRYPT_NONE && encryption_method!=ENCRYPT_XOR){
-		if(mcrypt_initialized==TRUE)
+		if(CI->td!=MCRYPT_FAILED){
 			mcrypt_generic_end(CI->td);
+			CI->td=MCRYPT_FAILED;
+			}
+		if(CI->key!=NULL)
+			clear_buffer(CI->key,CI->keysize);
 		free(CI->key);
 		CI->key=NULL;
 		free(CI->IV);
@@ -276,25 +291,36 @@ static void generate_transmitted_iv(char *transmitted_iv){
         FILE *fp;
         int x;
         int seed=0;
+        size_t nread=0;
 
         /*********************************************************/
         /* fill IV buffer with data that's as random as possible */
         /*********************************************************/
 
-        /* try to get seed value from /dev/urandom, as its a better source of entropy */
+        /* try to read the IV directly from /dev/urandom, as its a much better source of entropy than seeding rand() */
         fp=fopen("/dev/urandom","r");
         if(fp!=NULL){
-                seed=fgetc(fp);
+                nread=fread(transmitted_iv,1,TRANSMITTED_IV_SIZE,fp);
                 fclose(fp);
                 }
 
-        /* else fallback to using the current time as the seed */
+        /* got all the random bytes we needed straight from the kernel CSPRNG */
+        if(nread==TRANSMITTED_IV_SIZE)
+                return;
+
+        /* fallback: /dev/urandom unavailable or short read, so seed rand() as well as we can and fill in the rest */
+        fp=fopen("/dev/urandom","r");
+        if(fp!=NULL){
+                if(fread(&seed,1,sizeof(seed),fp)!=sizeof(seed))
+                        seed=(int)time(NULL);
+                fclose(fp);
+                }
         else
                 seed=(int)time(NULL);
 
-        /* generate pseudo-random IV */
+        /* generate pseudo-random IV for any bytes we weren't able to read above */
         srand(seed);
-        for(x=0;x<TRANSMITTED_IV_SIZE;x++)
+        for(x=(int)nread;x<TRANSMITTED_IV_SIZE;x++)
                 transmitted_iv[x]=(int)((256.0*rand())/(RAND_MAX+1.0));
 
         return;
@@ -363,7 +389,9 @@ void encrypt_buffer(char *buffer,int buffer_size, char *password, int encryption
 
 /* decrypt a buffer */
 void decrypt_buffer(char *buffer,int buffer_size, char *password, int encryption_method, struct crypt_instance *CI){
+#ifdef HAVE_LIBMCRYPT
         int x=0;
+#endif
 
 #ifdef DEBUG
         syslog(LOG_INFO,"Decrypting with algorithm #%d",encryption_method);
@@ -415,7 +443,8 @@ void randomize_buffer(char *buffer,int buffer_size){
 	/* try to get seed value from /dev/urandom, as its a better source of entropy */
 	fp=fopen("/dev/urandom","r");
 	if(fp!=NULL){
-		seed=fgetc(fp);
+		if(fread(&seed,1,sizeof(seed),fp)!=sizeof(seed))
+			seed=(int)time(NULL);
 		fclose(fp);
 	        }
 

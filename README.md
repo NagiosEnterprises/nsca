@@ -64,6 +64,32 @@ There are two pieces to this addon:
 
        <host_name>[tab]<return_code>[tab]<plugin_output>[newline]
 
+   **Sending multiple results at once (2.10 and later)**
+
+   Since version 2.10, `send_nsca` separates result sets with
+   the ETB character (`^W`, hex `0x17`), not with newlines.
+   Newlines inside a result are kept as part of the plugin
+   output, which is what allows multi-line output. A single
+   result per invocation still works exactly as shown above,
+   but several newline-separated lines sent in one invocation
+   are treated as **one** result whose output contains the
+   later lines.
+
+   To send several results in one connection, end each set
+   with ETB:
+
+       printf "host1\tsvc1\t0\tOK\x17host2\t2\tDOWN\x17" | send_nsca -H <nsca_host> -c send_nsca.cfg
+
+   If your plugin output never contains newlines and you
+   prefer the pre-2.10 one-result-per-line input, set the
+   result set delimiter to newline with `-ds`:
+
+       printf "host1\tsvc1\t0\tOK\nhost2\t2\tDOWN\n" | send_nsca -H <nsca_host> -c send_nsca.cfg -ds 0x0a
+
+   The field delimiter (tab by default) can likewise be
+   changed with `-d`. Both options accept a literal single
+   character or a numeric value such as `0x09`.
+
 
 
 Compiling

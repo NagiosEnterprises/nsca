@@ -50,11 +50,13 @@ int my_connect(char *host_name,int port,int *sd,char *proto){
 	struct protoent *ptrp;
 	int result;
 	struct addrinfo *aip = 0;
-	struct addrinfo hints = {
-	  (AI_V4MAPPED | AI_ADDRCONFIG),
-	  AF_UNSPEC,
-	};
+	struct addrinfo *try = 0;
+	struct addrinfo hints;
 	char server_port[32];
+
+	memset(&hints,0,sizeof(hints));
+	hints.ai_flags = (AI_V4MAPPED | AI_ADDRCONFIG);
+	hints.ai_family = AF_UNSPEC;
 
 	/* map transport protocol name to protocol number */
 	if(((ptrp=getprotobyname(proto)))==NULL){
@@ -64,24 +66,39 @@ int my_connect(char *host_name,int port,int *sd,char *proto){
 
 	hints.ai_protocol = ptrp->p_proto;
 	hints.ai_socktype = (!strcmp(proto,"udp"))?SOCK_DGRAM:SOCK_STREAM;
-	sprintf(server_port,"%d",port);
+	snprintf(server_port,sizeof(server_port),"%d",port);
 	result = getaddrinfo(host_name,server_port,&hints,&aip);
-	if (result < 0) {
-		fprintf(stderr, "Host name lookup failed: '%s'\n",host_name);
+	if (result != 0) {
+		fprintf(stderr, "Host name lookup failed: '%s': %s\n",host_name,gai_strerror(result));
 		return STATE_UNKNOWN;
 		}
 
-	/* create a socket */
-	*sd=socket(aip->ai_family,aip->ai_socktype,aip->ai_protocol);
+	/* try each address returned until one connects successfully */
+	*sd=-1;
+	result=-1;
+	for(try=aip;try!=NULL;try=try->ai_next){
+
+		/* create a socket */
+		*sd=socket(try->ai_family,try->ai_socktype,try->ai_protocol);
+		if(*sd<0)
+			continue;
+
+		/* open a connection */
+		result=connect(*sd,try->ai_addr,try->ai_addrlen);
+		if(result==0)
+			break;
+
+		/* this address didn't work - try the next one (if any) */
+		close(*sd);
+		*sd=-1;
+	        }
+	freeaddrinfo(aip);
+
 	if(*sd<0){
 		fprintf(stderr, "Socket creation failed\n");
-		freeaddrinfo(aip);
 		return STATE_UNKNOWN;
 	        }
 
-	/* open a connection */
-	result=connect(*sd,aip->ai_addr,aip->ai_addrlen);
-	freeaddrinfo(aip);
 	if(result<0){
 		switch(errno){
 		case ECONNREFUSED:
@@ -212,11 +229,32 @@ int sendall(int s, char *buf, int *len){
 	int total=0;
 	int bytesleft=*len;
 	int n=0;
+	int flags=0;
+	struct pollfd pfd;
+
+#ifdef MSG_NOSIGNAL
+	/* a peer that disconnects must not kill us with SIGPIPE */
+	flags=MSG_NOSIGNAL;
+#endif
 
 	while(total<*len){
-		n=send(s,buf+total,bytesleft,0);
-		if(n==-1)
+		n=send(s,buf+total,bytesleft,flags);
+		if(n==-1){
+
+			/* interrupted by a signal - just try again */
+			if(errno==EINTR)
+				continue;
+
+			/* non-blocking socket is full - wait (bounded) until it drains */
+			if(errno==EAGAIN || errno==EWOULDBLOCK){
+				pfd.fd=s;
+				pfd.events=POLLOUT;
+				pfd.revents=0;
+				if(poll(&pfd,1,DEFAULT_SOCKET_TIMEOUT*1000)>0)
+					continue;
+				}
 			break;
+			}
 		total+=n;
 		bytesleft-=n;
 	        }
@@ -236,6 +274,7 @@ int recvall(int s, char *buf, int *len, int timeout){
 	int n=0;
 	time_t start_time;
 	time_t current_time;
+	struct pollfd pfd;
 
 	/* clear the receive buffer */
 	bzero(buf,*len);
@@ -248,12 +287,21 @@ int recvall(int s, char *buf, int *len, int timeout){
 		/* receive some data */
 		n=recv(s,buf+total,bytesleft,0);
 
+		/* interrupted by a signal - just try again */
+		if(n==-1 && errno==EINTR)
+			continue;
+
 		/* no data has arrived yet (non-blocking socket) */
-		if(n==-1 && errno==EAGAIN){
+		if(n==-1 && (errno==EAGAIN || errno==EWOULDBLOCK)){
 			time(&current_time);
 			if(current_time-start_time>timeout)
 				break;
-			sleep(1);
+
+			/* wait for data instead of sleeping, so we wake up as soon as it arrives */
+			pfd.fd=s;
+			pfd.events=POLLIN;
+			pfd.revents=0;
+			poll(&pfd,1,1000);
 			continue;
 		        }
 

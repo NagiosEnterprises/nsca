@@ -228,7 +228,7 @@ int main(int argc, char **argv){
 
 		    while ((c = getc(stdin)) >= 0) {
 
-				if (pos > MAX_INPUT_BUFFER - 1) {
+				if (pos >= MAX_INPUT_BUFFER - 1) {
 				    printf("Error: Input set is longer than max allowed.\n");
 				    return ERROR;
 				}
@@ -329,7 +329,7 @@ int main(int argc, char **argv){
 
 		/* for some reason we didn't send all the bytes we were supposed to */
 		else if(bytes_to_send<sizeof_send_packet){
-			printf("Warning: Sent only %d of %d bytes to host\n",rc,sizeof_send_packet);
+			printf("Warning: Sent only %d of %d bytes to host\n",bytes_to_send,sizeof_send_packet);
 			close(sd);
 			return STATE_UNKNOWN;
 		}
@@ -427,6 +427,7 @@ int read_init_packet(int sock){
 int parse_delimiter(char *result, size_t result_size, const char *arg) {
 	if (strlen(arg) > 1 && ((arg[0] > 47 && arg[0] < 58) || arg[0] == 43 || arg[0] == 45)) {
 		/* arg starts with 0-9, +, or -, but isn't a single character */
+		errno = 0;
 		result[0] = (char) strtol(arg, NULL, 0);
 		if (errno) {
 			return ERROR;
@@ -434,7 +435,7 @@ int parse_delimiter(char *result, size_t result_size, const char *arg) {
 	}
 	else {
 	    snprintf(result,result_size,"%s",arg);
-	    delimiter[result_size-1]='\x0';
+	    result[result_size-1]='\x0';
 	}
 
 	return OK;
@@ -523,7 +524,7 @@ int process_arguments(int argc, char **argv){
 
 		/* delimiter to use when parsing input */
 		else if(!strcmp(argv[x-1],"-d")){
-			if (parse_delimiter(delimiter, sizeof(delimiter), argv[x])) {
+			if (x>=argc || parse_delimiter(delimiter, sizeof(delimiter), argv[x])) {
 				return ERROR;
 			}
 			x++;
@@ -531,7 +532,7 @@ int process_arguments(int argc, char **argv){
 
 		/* delimiter to use when parsing input set */
 		else if(!strcmp(argv[x-1],"-ds")){
-			if (parse_delimiter(block_delimiter, sizeof(block_delimiter), argv[x])) {
+			if (x>=argc || parse_delimiter(block_delimiter, sizeof(block_delimiter), argv[x])) {
 				return ERROR;
 			}
 			x++;
@@ -548,10 +549,13 @@ int process_arguments(int argc, char **argv){
 
 /* handle timeouts */
 void alarm_handler(int sig){
-	char *msg = NULL;
-	asprintf(&msg, "Error: Timeout after %d seconds\n",socket_timeout);
-	/* fprintf(stderr, "Error: Timeout after %d seconds\n",socket_timeout); */
-	write(STDERR_FILENO, msg, strlen(msg));
+	char msg[64];
+	int len;
+
+	/* no malloc() inside a signal handler */
+	len=snprintf(msg, sizeof(msg), "Error: Timeout after %d seconds\n",socket_timeout);
+	if(len>0)
+		write(STDERR_FILENO, msg, ((size_t)len<sizeof(msg))?(size_t)len:sizeof(msg)-1);
 
 	do_exit(STATE_CRITICAL);
 }
@@ -595,6 +599,7 @@ int read_config_file(char *filename){
 
 			printf("No variable name specified in config file '%s' - Line %d\n",filename,line);
 
+			fclose(fp);
 			return ERROR;
 		}
 
@@ -604,6 +609,7 @@ int read_config_file(char *filename){
 
 			printf("No variable value specified in config file '%s' - Line %d\n",filename,line);
 
+			fclose(fp);
 			return ERROR;
 		}
 
@@ -612,6 +618,7 @@ int read_config_file(char *filename){
 
 				printf("Password is too long in config file '%s' - Line %d\n",filename,line);
 
+				fclose(fp);
 				return ERROR;
 			}
 			strncpy(password,varvalue,sizeof(password));
@@ -678,6 +685,7 @@ int read_config_file(char *filename){
 				if(encryption_method>=2)
 					printf("Client was not compiled with mcrypt library, so encryption is unavailable.\n");
 #endif
+				fclose(fp);
 				return ERROR;
 			}
 		}
@@ -692,6 +700,7 @@ int read_config_file(char *filename){
 		else{
 			printf("Unknown option specified in config file '%s' - Line %d\n",filename,line);
 
+			fclose(fp);
 			return ERROR;
 		}
 

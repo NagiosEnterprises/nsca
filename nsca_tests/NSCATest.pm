@@ -52,7 +52,8 @@ sub stop {
 
 sub send {
 	my ($self, $data) = @_;
-	my @output = map { join("\t", @$_)."\n" } @$data;
+	# since 2.10, send_nsca separates result sets with ETB (0x17), not newlines
+	my @output = map { join("\t", @$_)."\x17" } @$data;
 	open SEND, "| ".$self->send_cmd;
 	print SEND @output;
 	close SEND;

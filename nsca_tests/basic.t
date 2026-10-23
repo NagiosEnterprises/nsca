@@ -26,7 +26,7 @@ my $data = [
 	["host-batman", "another service", 3, "Unknown - the only way to travel"],
 	];
 
-foreach my $type qw(--single --daemon) {
+foreach my $type (qw(--single --daemon)) {
 	my $nsca = NSCATest->new( config => "basic" );
 
 	$nsca->start($type);
