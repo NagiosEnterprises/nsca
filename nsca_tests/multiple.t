@@ -31,7 +31,7 @@ for (1 .. $iterations) {
 	push @$copies, @$c;
 }
 
-foreach my $type qw(--single --daemon) {
+foreach my $type (qw(--single --daemon)) {
 	my $nsca = NSCATest->new( config => "basic" );
 
 	$nsca->start($type);

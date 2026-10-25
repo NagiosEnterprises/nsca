@@ -1,6 +1,13 @@
 NSCA Changelog
 ==============
 
+Unreleased
+----------
+ * Use libgcrypt instead of the unmaintained libmcrypt for encryption. DES, 3DES, CAST-128,
+   BLOWFISH, TWOFISH, RIJNDAEL-128 and SERPENT remain wire-compatible with libmcrypt builds;
+   the other libmcrypt-only methods were removed. configure now takes --with-gcrypt-lib and
+   --with-gcrypt-inc instead of --with-mcrypt-lib and --with-mcrypt-inc.
+
 2.10.3 - 2024-08-01
 -------------------
  * Allow NSCA to bind to the loopback address (Imre Jonk)

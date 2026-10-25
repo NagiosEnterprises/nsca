@@ -216,9 +216,9 @@ typedef int int32_t;
 #include <ctype.h>
 #endif
 
-#undef HAVE_LIBMCRYPT
-#ifdef HAVE_LIBMCRYPT
-#include <mcrypt.h>
+#undef HAVE_LIBGCRYPT
+#ifdef HAVE_LIBGCRYPT
+#include <gcrypt.h>
 #endif
 
 #undef HAVE_DB_H

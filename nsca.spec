@@ -22,7 +22,8 @@ License: GPL
 Group: Application/System
 Source0: %{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-buildroot
-Requires: bash, nagios, libmcrypt, xinetd
+Requires: bash, nagios, libgcrypt, xinetd
+BuildRequires: libgcrypt-devel
 
 # uncomment this for RedHat Enterprise Linux 3:
 #PreReq: util-linux, sh-utils, shadow-utils, sed, fileutils, mktemp
@@ -35,9 +36,9 @@ This program is designed to accept passive service check results from
 clients that use the send_nsca utility and pass them along to the
 Nagios process by using the external command
 interface. The program can either be run as a standalone daemon or as
-a service under inetd. If you have libmcrypt installed on your systems,
-you can choose from multiple crypto algorithms (DES, 3DES, CAST, xTEA,
-Twofish, LOKI97, RJINDAEL, SERPENT, GOST, SAFER/SAFER+, etc.) for
+a service under inetd. If you have libgcrypt installed on your systems,
+you can choose from multiple crypto algorithms (DES, 3DES, CAST-128,
+Blowfish, Twofish, Rijndael/AES, Serpent) for
 encrypting the traffic between the client and the server.
 Encryption is important in this addon, as it prevents unauthorized users
 from sending bogus check results to Nagios. Read the included SECURITY
@@ -46,7 +47,7 @@ document for more information.
 This package provides the core agent running on the Nagios server
 
 %package send
-Requires: libmcrypt
+Requires: libgcrypt
 Group: Application/System
 Summary: Provides the send_nsca utility running on the Nagios-Client.
 
@@ -55,9 +56,9 @@ This program is designed to accept passive service check results from
 clients that use the send_nsca utility (which is included in this package)
 and pass them along to the Nagios process by using the external command
 interface. The program can either be run as a standalone daemon or as
-a service under inetd. If you have libmcrypt installed on your systems,
-you can choose from multiple crypto algorithms (DES, 3DES, CAST, xTEA,
-Twofish, LOKI97, RJINDAEL, SERPENT, GOST, SAFER/SAFER+, etc.) for
+a service under inetd. If you have libgcrypt installed on your systems,
+you can choose from multiple crypto algorithms (DES, 3DES, CAST-128,
+Blowfish, Twofish, Rijndael/AES, Serpent) for
 encrypting the traffic between the client and the server.
 Encryption is important in this addon, as it prevents unauthorized users
 from sending bogus check results to Nagios. Read the included SECURITY

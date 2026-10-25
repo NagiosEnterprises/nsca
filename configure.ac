@@ -169,57 +169,52 @@ AC_TRY_COMPILE([#include <stdlib.h>
 [AC_DEFINE(SOCKET_SIZE_TYPE, size_t, [Socket Size Type]) AC_MSG_RESULT(size_t)],
 [AC_DEFINE(SOCKET_SIZE_TYPE, int, [Socket Size Type]) AC_MSG_RESULT(int)])
 
-dnl Optional mcrypt library and include paths
-AC_ARG_WITH(mcrypt-lib,--with-mcrypt-lib=DIR sets location of the mcrypt client library,[
+dnl Optional libgcrypt library and include paths
+AC_ARG_WITH(gcrypt-lib,--with-gcrypt-lib=DIR sets location of the libgcrypt library,[
 	LDFLAGS="${LDFLAGS} -L${withval}"
 	LD_RUN_PATH="${withval}${LD_RUN_PATH:+:}${LD_RUN_PATH}"
 	])
-AC_ARG_WITH(mcrypt-inc,--with-mcrypt-inc=DIR sets location of the mcrypt client include files,[
+AC_ARG_WITH(gcrypt-inc,--with-gcrypt-inc=DIR sets location of the libgcrypt include files,[
 	CFLAGS="${CFLAGS} -I${withval}"
 	])
 
-dnl Old checks for libmcrypt, no longer needed - 01/17/02 EG
-dnl AC_CHECK_LIB(ltdl,main)
-dnl AC_CHECK_LIB(mcrypt,mcrypt,MCRYPTLIBFOUND=yep)
+dnl Check for libgcrypt (1.8.0 or newer, for 8-bit CFB mode)
+GCRYPTLIBFOUND=nope
+AC_CHECK_HEADER(gcrypt.h,[
+	AC_CHECK_LIB(gcrypt,gcry_check_version,[
+		AC_CHECK_DECL(GCRY_CIPHER_MODE_CFB8,GCRYPTLIBFOUND=yep,,[#include <gcrypt.h>])
+		])
+	])
 
-dnl Check for mcrypt library
-MCRYPTLIBFOUND=yep
-AM_PATH_LIBMCRYPT(2.4.11,,MCRYPTLIBFOUND=nope)
-
-dnl added for automatic use of mcrypt stark@suse.de
-if test $MCRYPTLIBFOUND = yep; then
-	CFLAGS="${CFLAGS} -DHAVE_LIBMCRYPT ${LIBMCRYPT_CFLAGS}"
-	LDFLAGS="${LDFLAGS} ${LIBMCRYPT_LIBS}"
+if test x$GCRYPTLIBFOUND = xyep; then
+	AC_DEFINE(HAVE_LIBGCRYPT,1,[Have the libgcrypt library])
+	LIBS="${LIBS} -lgcrypt"
 fi
 
-dnl Did we find the mcrypt library?
-if test x$MCRYPTLIBFOUND = xnope; then
+dnl Did we find libgcrypt?
+if test x$GCRYPTLIBFOUND = xnope; then
 	echo ""
 	echo ""
 	echo "**************************************************************"
-	echo "MCRYPT LIBRARY (libmcrypt) COULD NOT BE LOCATED..."
+	echo "LIBGCRYPT (1.8.0 OR NEWER) COULD NOT BE LOCATED..."
 	echo ""
-	echo "The mcrypt library could not be located on your system.  This"
-	echo "means that you will NOT be able to use any crypto algorithms"
-	echo "in the NSCA client or daemon."
+	echo "The libgcrypt library could not be located on your system."
+	echo "This means that you will NOT be able to use any crypto"
+	echo "algorithms in the NSCA client or daemon."
 	echo ""
 	echo "Read the SECURITY text file for more information on why"
 	echo "encryption is important to ensuring that the NSCA daemon is"
 	echo "not abused by malicious users."
 	echo ""
-	echo "You can download libmcrypt from:"
+	echo "Most systems ship libgcrypt; install the development package"
+	echo "(e.g. libgcrypt20-dev on Debian/Ubuntu, libgcrypt-devel on"
+	echo "RHEL/Fedora/SUSE), or download it from:"
 	echo ""
-	echo "        http://mcrypt.sourceforge.net/"
+	echo "        https://gnupg.org/software/libgcrypt/"
 	echo ""
-	echo ""
-	echo "NOTE: After you install the MCRYPT library on your system:"
-	echo ""
-	echo "      1. Make sure /etc/ld.so.conf has an entry for the"
-	echo "         directory in which the MCRYPT library is installed."
-	echo "      2. Run 'ldconfig' to update the run-time linker options."
-	echo "      3. Run 'make devclean' in the NSCA distribution to clean"
-	echo "         out any old references to your previous compile."
-	echo "      4. Rerun the configure script."
+	echo "If it is installed in a non-standard location, use the"
+	echo "--with-gcrypt-lib and --with-gcrypt-inc options, then run"
+	echo "'make devclean' and rerun the configure script."
 	echo ""
 	echo "**************************************************************"
 	echo ""

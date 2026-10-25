@@ -1,4 +1,5 @@
 #!/bin/sh
 
-prove *.t
+# -I. : modern Perl no longer searches the current directory for NSCATest.pm
+prove -I. *.t
 

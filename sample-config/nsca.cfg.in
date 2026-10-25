@@ -176,27 +176,16 @@ max_packet_age=30
 #       2 = DES
 #       3 = 3DES (Triple DES)
 #	4 = CAST-128
-#	5 = CAST-256
-#	6 = xTEA
-#	7 = 3WAY
 #	8 = BLOWFISH
 #	9 = TWOFISH
-#	10 = LOKI97
-#	11 = RC2
-#	12 = ARCFOUR
-#
-#	14 = RIJNDAEL-128
-#	15 = RIJNDAEL-192
-#	16 = RIJNDAEL-256
-#
-#	19 = WAKE
+#	14 = RIJNDAEL-128 (AES-256)
 #	20 = SERPENT
 #
-#	22 = ENIGMA (Unix crypt)
-#	23 = GOST
-#	24 = SAFER64
-#	25 = SAFER128
-#	26 = SAFER+
+#	Methods 2-26 require NSCA to be built with libgcrypt.  These
+#	methods are wire-compatible with NSCA builds that used libmcrypt.
+#	The other libmcrypt methods (5, 6, 7, 10, 11, 12, 15, 16, 19, 22,
+#	23, 24, 25, 26) are no longer supported; switch both ends to one
+#	of the methods above (14 is recommended).
 #
 
 decryption_method=1

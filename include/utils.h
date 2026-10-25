@@ -35,21 +35,19 @@
 
 struct crypt_instance {
 	char transmitted_iv[TRANSMITTED_IV_SIZE];
-#ifdef HAVE_LIBMCRYPT
-	MCRYPT td;
+#ifdef HAVE_LIBGCRYPT
+	gcry_cipher_hd_t hd;
+	int hd_open;
 	char *key;
-	char *IV;
-	char block_buffer;
-	int blocksize;
 	int keysize;
-	char *mcrypt_algorithm;
-	char *mcrypt_mode;
+	const char *algorithm_name;
 #endif
         };
 
 void generate_crc32_table(void);
 unsigned long calculate_crc32(char *, int);
 
+int encrypt_method_supported(int);
 int encrypt_init(char *,int,char *,struct crypt_instance **);
 void encrypt_cleanup(int,struct crypt_instance *);
 

@@ -69,33 +69,36 @@
 #define ENCRYPT_NONE            0       /* no encryption */
 #define ENCRYPT_XOR             1       /* not really encrypted, just obfuscated */
 
-#ifdef HAVE_LIBMCRYPT
+/* the numbers below are part of the config file format, so they never change.  methods marked
+   UNSUPPORTED were provided by libmcrypt, but libgcrypt either lacks them or implements them
+   differently than libmcrypt did (so the result would not interoperate with older builds) */
 #define ENCRYPT_DES             2       /* DES */
 #define ENCRYPT_3DES            3       /* 3DES or Triple DES */
 #define ENCRYPT_CAST128         4       /* CAST-128 */
-#define ENCRYPT_CAST256         5       /* CAST-256 */
-#define ENCRYPT_XTEA            6       /* xTEA */
-#define ENCRYPT_3WAY            7       /* 3-WAY */
-#define ENCRYPT_BLOWFISH        8       /* SKIPJACK */
+#define ENCRYPT_CAST256         5       /* CAST-256 */       /* UNSUPPORTED */
+#define ENCRYPT_XTEA            6       /* xTEA */           /* UNSUPPORTED */
+#define ENCRYPT_3WAY            7       /* 3-WAY */          /* UNSUPPORTED */
+#define ENCRYPT_BLOWFISH        8       /* BLOWFISH */
 #define ENCRYPT_TWOFISH         9       /* TWOFISH */
-#define ENCRYPT_LOKI97          10      /* LOKI97 */
-#define ENCRYPT_RC2             11      /* RC2 */
-#define ENCRYPT_ARCFOUR         12      /* RC4 */
+#define ENCRYPT_LOKI97          10      /* LOKI97 */         /* UNSUPPORTED */
+#define ENCRYPT_RC2             11      /* RC2 */            /* UNSUPPORTED */
+#define ENCRYPT_ARCFOUR         12      /* RC4 */            /* UNSUPPORTED */
 #define ENCRYPT_RC6             13      /* RC6 */            /* UNUSED */
 #define ENCRYPT_RIJNDAEL128     14      /* RIJNDAEL-128 */
-#define ENCRYPT_RIJNDAEL192     15      /* RIJNDAEL-192 */
-#define ENCRYPT_RIJNDAEL256     16      /* RIJNDAEL-256 */
+#define ENCRYPT_RIJNDAEL192     15      /* RIJNDAEL-192 */   /* UNSUPPORTED */
+#define ENCRYPT_RIJNDAEL256     16      /* RIJNDAEL-256 */   /* UNSUPPORTED */
 #define ENCRYPT_MARS            17      /* MARS */           /* UNUSED */
 #define ENCRYPT_PANAMA          18      /* PANAMA */         /* UNUSED */
-#define ENCRYPT_WAKE            19      /* WAKE */
+#define ENCRYPT_WAKE            19      /* WAKE */           /* UNSUPPORTED */
 #define ENCRYPT_SERPENT         20      /* SERPENT */
 #define ENCRYPT_IDEA            21      /* IDEA */           /* UNUSED */
-#define ENCRYPT_ENIGMA          22      /* ENIGMA (Unix crypt) */
-#define ENCRYPT_GOST            23      /* GOST */
-#define ENCRYPT_SAFER64         24      /* SAFER-sk64 */
-#define ENCRYPT_SAFER128        25      /* SAFER-sk128 */
-#define ENCRYPT_SAFERPLUS       26      /* SAFER+ */
-#endif
+#define ENCRYPT_ENIGMA          22      /* ENIGMA (Unix crypt) */ /* UNSUPPORTED */
+#define ENCRYPT_GOST            23      /* GOST */           /* UNSUPPORTED */
+#define ENCRYPT_SAFER64         24      /* SAFER-sk64 */     /* UNSUPPORTED */
+#define ENCRYPT_SAFER128        25      /* SAFER-sk128 */    /* UNSUPPORTED */
+#define ENCRYPT_SAFERPLUS       26      /* SAFER+ */         /* UNSUPPORTED */
+
+#define NSCA_GCRYPT_MIN_VERSION "1.8.0" /* first libgcrypt release with 8-bit CFB mode */
 
 
 

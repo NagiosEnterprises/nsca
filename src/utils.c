@@ -36,10 +36,6 @@
 /*#define DEBUG*/
 
 static unsigned long crc32_table[256];
-#ifdef HAVE_LIBMCRYPT
-static volatile sig_atomic_t mcrypt_initialized=FALSE;
-#endif
-
 static void generate_transmitted_iv(char *transmitted_iv);
 
 /* build the crc table - must be called before calculating the crc value */
@@ -81,11 +77,84 @@ unsigned long calculate_crc32(char *buffer, int buffer_size){
 
 
 
+#ifdef HAVE_LIBGCRYPT
+/* maps an NSCA encryption method to a libgcrypt cipher.  the key size is the one libmcrypt used for the
+   algorithm, since the password is zero-padded/truncated to that length - keeping it identical keeps us
+   wire-compatible with clients and daemons that were built against libmcrypt */
+static int get_gcrypt_cipher(int encryption_method, int *algo, int *keysize, const char **name){
+
+        switch(encryption_method){
+        case ENCRYPT_DES:
+                *algo=GCRY_CIPHER_DES;
+                *keysize=8;
+                *name="DES";
+                break;
+        case ENCRYPT_3DES:
+                *algo=GCRY_CIPHER_3DES;
+                *keysize=24;
+                *name="3DES";
+                break;
+        case ENCRYPT_CAST128:
+                *algo=GCRY_CIPHER_CAST5;
+                *keysize=16;
+                *name="CAST-128";
+                break;
+        case ENCRYPT_BLOWFISH:
+                *algo=GCRY_CIPHER_BLOWFISH;
+                *keysize=56;
+                *name="BLOWFISH";
+                break;
+        case ENCRYPT_TWOFISH:
+                *algo=GCRY_CIPHER_TWOFISH;
+                *keysize=32;
+                *name="TWOFISH";
+                break;
+        case ENCRYPT_RIJNDAEL128:
+                /* RIJNDAEL-128 with libmcrypt's 32 byte key is AES-256 */
+                *algo=GCRY_CIPHER_AES256;
+                *keysize=32;
+                *name="RIJNDAEL-128";
+                break;
+        case ENCRYPT_SERPENT:
+                *algo=GCRY_CIPHER_SERPENT256;
+                *keysize=32;
+                *name="SERPENT";
+                break;
+        default:
+                return ERROR;
+                }
+
+        return OK;
+        }
+
+
+/* returns TRUE if the encryption method can be used with this build */
+int encrypt_method_supported(int encryption_method){
+        int algo;
+        int keysize;
+        const char *name;
+
+        if(encryption_method==ENCRYPT_NONE || encryption_method==ENCRYPT_XOR)
+                return TRUE;
+
+        return (get_gcrypt_cipher(encryption_method,&algo,&keysize,&name)==OK)?TRUE:FALSE;
+        }
+#else
+/* returns TRUE if the encryption method can be used with this build */
+int encrypt_method_supported(int encryption_method){
+
+        return (encryption_method==ENCRYPT_NONE || encryption_method==ENCRYPT_XOR)?TRUE:FALSE;
+        }
+#endif
+
+
 /* initializes encryption routines */
 int encrypt_init(char *password,int encryption_method,char *received_iv,struct crypt_instance **CIptr){
-#ifdef HAVE_LIBMCRYPT
-        int i;
-        int iv_size;
+#ifdef HAVE_LIBGCRYPT
+        int algo;
+        size_t iv_size;
+        size_t password_length;
+        gcry_error_t err;
 #endif
         struct crypt_instance *CI;
 
@@ -105,139 +174,94 @@ int encrypt_init(char *password,int encryption_method,char *received_iv,struct c
         else
                 memcpy(CI->transmitted_iv,received_iv,TRANSMITTED_IV_SIZE);
 
-#ifdef HAVE_LIBMCRYPT
-        CI->blocksize=1;                        /* block size = 1 byte w/ CFB mode */
-        CI->keysize=7;                          /* default to 56 bit key length */
-        CI->mcrypt_mode="cfb";                  /* CFB = 8-bit cipher-feedback mode */
-        CI->mcrypt_algorithm="unknown";
+#ifdef HAVE_LIBGCRYPT
+        CI->hd_open=FALSE;                      /* nothing to clean up until the cipher is opened */
+        CI->key=NULL;
+        CI->keysize=0;
+        CI->algorithm_name="unknown";
 #endif
 
         /* XOR or no encryption */
         if(encryption_method==ENCRYPT_NONE || encryption_method==ENCRYPT_XOR)
                 return OK;
 
-#ifdef HAVE_LIBMCRYPT
+#ifdef HAVE_LIBGCRYPT
 
-        /* get the name of the mcrypt encryption algorithm to use */
-        switch(encryption_method){
-        case ENCRYPT_DES:
-                CI->mcrypt_algorithm=MCRYPT_DES;
-                break;
-        case ENCRYPT_3DES:
-                CI->mcrypt_algorithm=MCRYPT_3DES;
-                break;
-        case ENCRYPT_CAST128:
-                CI->mcrypt_algorithm=MCRYPT_CAST_128;
-                break;
-        case ENCRYPT_CAST256:
-                CI->mcrypt_algorithm=MCRYPT_CAST_256;
-                break;
-        case ENCRYPT_XTEA:
-                CI->mcrypt_algorithm=MCRYPT_XTEA;
-                break;
-        case ENCRYPT_3WAY:
-                CI->mcrypt_algorithm=MCRYPT_3WAY;
-                break;
-        case ENCRYPT_BLOWFISH:
-                CI->mcrypt_algorithm=MCRYPT_BLOWFISH;
-                break;
-        case ENCRYPT_TWOFISH:
-                CI->mcrypt_algorithm=MCRYPT_TWOFISH;
-                break;
-        case ENCRYPT_LOKI97:
-                CI->mcrypt_algorithm=MCRYPT_LOKI97;
-                break;
-        case ENCRYPT_RC2:
-                CI->mcrypt_algorithm=MCRYPT_RC2;
-                break;
-        case ENCRYPT_ARCFOUR:
-                CI->mcrypt_algorithm=MCRYPT_ARCFOUR;
-                break;
-        case ENCRYPT_RIJNDAEL128:
-                CI->mcrypt_algorithm=MCRYPT_RIJNDAEL_128;
-                break;
-        case ENCRYPT_RIJNDAEL192:
-                CI->mcrypt_algorithm=MCRYPT_RIJNDAEL_192;
-                break;
-        case ENCRYPT_RIJNDAEL256:
-                CI->mcrypt_algorithm=MCRYPT_RIJNDAEL_256;
-                break;
-        case ENCRYPT_WAKE:
-                CI->mcrypt_algorithm=MCRYPT_WAKE;
-                break;
-        case ENCRYPT_SERPENT:
-                CI->mcrypt_algorithm=MCRYPT_SERPENT;
-                break;
-        case ENCRYPT_ENIGMA:
-                CI->mcrypt_algorithm=MCRYPT_ENIGMA;
-                break;
-        case ENCRYPT_GOST:
-                CI->mcrypt_algorithm=MCRYPT_GOST;
-                break;
-        case ENCRYPT_SAFER64:
-                CI->mcrypt_algorithm=MCRYPT_SAFER_SK64;
-                break;
-        case ENCRYPT_SAFER128:
-                CI->mcrypt_algorithm=MCRYPT_SAFER_SK128;
-                break;
-        case ENCRYPT_SAFERPLUS:
-                CI->mcrypt_algorithm=MCRYPT_SAFERPLUS;
-                break;
-
-        default:
-                CI->mcrypt_algorithm="unknown";
-                break;
+        /* libgcrypt must be initialized before any other call is made into it */
+        if(!gcry_control(GCRYCTL_INITIALIZATION_FINISHED_P)){
+                if(gcry_check_version(NSCA_GCRYPT_MIN_VERSION)==NULL){
+                        syslog(LOG_ERR,"libgcrypt is too old (need %s or newer)",NSCA_GCRYPT_MIN_VERSION);
+                        encrypt_cleanup(encryption_method,CI);
+                        *CIptr=NULL;
+                        return ERROR;
+                        }
+                /* we keep the key in ordinary memory and wipe it ourselves on cleanup */
+                gcry_control(GCRYCTL_DISABLE_SECMEM,0);
+                gcry_control(GCRYCTL_INITIALIZATION_FINISHED,0);
                 }
 
-#ifdef DEBUG
-        syslog(LOG_INFO,"Attempting to initialize '%s' crypto algorithm...",CI->mcrypt_algorithm);
-#endif
-
-        /* open encryption module */
-        if((CI->td=mcrypt_module_open(CI->mcrypt_algorithm,NULL,CI->mcrypt_mode,NULL))==MCRYPT_FAILED){
-                syslog(LOG_ERR,"Could not open mcrypt algorithm '%s' with mode '%s'",CI->mcrypt_algorithm,CI->mcrypt_mode);
+        /* get the libgcrypt cipher to use */
+        if(get_gcrypt_cipher(encryption_method,&algo,&CI->keysize,&CI->algorithm_name)==ERROR){
+                syslog(LOG_ERR,"Encryption method %d is not supported",encryption_method);
+                encrypt_cleanup(encryption_method,CI);
+                *CIptr=NULL;
                 return ERROR;
                 }
 
 #ifdef DEBUG
-        syslog(LOG_INFO,"Using '%s' as crypto algorithm...",CI->mcrypt_algorithm);
+        syslog(LOG_INFO,"Attempting to initialize '%s' crypto algorithm...",CI->algorithm_name);
 #endif
 
-        /* determine size of IV buffer for this algorithm */
-        iv_size=mcrypt_enc_get_iv_size(CI->td);
-        if(iv_size>TRANSMITTED_IV_SIZE){
+        /* open the cipher in 8-bit cipher-feedback mode (what libmcrypt called "cfb") */
+        if((err=gcry_cipher_open(&CI->hd,algo,GCRY_CIPHER_MODE_CFB8,0))!=0){
+                syslog(LOG_ERR,"Could not open crypto algorithm '%s': %s",CI->algorithm_name,gcry_strerror(err));
+                encrypt_cleanup(encryption_method,CI);
+                *CIptr=NULL;
+                return ERROR;
+                }
+        CI->hd_open=TRUE;
+
+#ifdef DEBUG
+        syslog(LOG_INFO,"Using '%s' as crypto algorithm...",CI->algorithm_name);
+#endif
+
+        /* the IV is the first bytes of the IV the server transmitted, one cipher block long */
+        iv_size=gcry_cipher_get_algo_blklen(algo);
+        if(iv_size==0 || iv_size>TRANSMITTED_IV_SIZE){
                 syslog(LOG_ERR,"IV size for crypto algorithm exceeds limits");
+                encrypt_cleanup(encryption_method,CI);
+                *CIptr=NULL;
                 return ERROR;
                 }
-
-        /* allocate memory for IV buffer */
-        if((CI->IV=(char *)malloc(iv_size))==NULL){
-                syslog(LOG_ERR,"Could not allocate memory for IV buffer");
-                return ERROR;
-                }
-
-        /* fill IV buffer with first bytes of IV that is going to be used to crypt (determined by server) */
-        for(i=0;i<iv_size;i++)
-                CI->IV[i]=CI->transmitted_iv[i];
-
-        /* get maximum key size for this algorithm */
-        CI->keysize=mcrypt_enc_get_key_size(CI->td);
 
         /* generate an encryption/description key using the password */
-        if((CI->key=(char *)malloc(CI->keysize))==NULL){
+        if((CI->key=(char *)calloc(1,CI->keysize))==NULL){
                 syslog(LOG_ERR,"Could not allocate memory for encryption/decryption key");
+                encrypt_cleanup(encryption_method,CI);
+                *CIptr=NULL;
                 return ERROR;
                 }
-        bzero(CI->key,CI->keysize);
 
-        if(CI->keysize<strlen(password))
-                strncpy(CI->key,password,CI->keysize);
-        else
-                strncpy(CI->key,password,strlen(password));
+        password_length=strlen(password);
+        memcpy(CI->key,password,(password_length<(size_t)CI->keysize)?password_length:(size_t)CI->keysize);
 
-        /* initialize encryption buffers */
-        mcrypt_generic_init(CI->td,CI->key,CI->keysize,CI->IV);
-        mcrypt_initialized=TRUE;
+        /* libmcrypt accepted weak DES/3DES keys (e.g. a short password zero-padded to 24 bytes), so we must too */
+        gcry_cipher_ctl(CI->hd,GCRYCTL_SET_ALLOW_WEAK_KEY,NULL,1);
+
+        err=gcry_cipher_setkey(CI->hd,CI->key,CI->keysize);
+        if(err!=0 && gcry_err_code(err)!=GPG_ERR_WEAK_KEY){
+                syslog(LOG_ERR,"Could not set key for crypto algorithm '%s': %s",CI->algorithm_name,gcry_strerror(err));
+                encrypt_cleanup(encryption_method,CI);
+                *CIptr=NULL;
+                return ERROR;
+                }
+
+        if((err=gcry_cipher_setiv(CI->hd,CI->transmitted_iv,iv_size))!=0){
+                syslog(LOG_ERR,"Could not set IV for crypto algorithm '%s': %s",CI->algorithm_name,gcry_strerror(err));
+                encrypt_cleanup(encryption_method,CI);
+                *CIptr=NULL;
+                return ERROR;
+                }
 #endif
 
         return OK;
@@ -252,15 +276,17 @@ void encrypt_cleanup(int encryption_method, struct crypt_instance *CI){
 	if(CI==NULL)
 		return;
 
-#ifdef HAVE_LIBMCRYPT
-        /* mcrypt cleanup */
+#ifdef HAVE_LIBGCRYPT
+        /* libgcrypt cleanup */
         if(encryption_method!=ENCRYPT_NONE && encryption_method!=ENCRYPT_XOR){
-		if(mcrypt_initialized==TRUE)
-			mcrypt_generic_end(CI->td);
+		if(CI->hd_open==TRUE){
+			gcry_cipher_close(CI->hd);
+			CI->hd_open=FALSE;
+			}
+		if(CI->key!=NULL)
+			clear_buffer(CI->key,CI->keysize);
 		free(CI->key);
 		CI->key=NULL;
-		free(CI->IV);
-		CI->IV=NULL;
 		}
 #endif
 
@@ -276,25 +302,36 @@ static void generate_transmitted_iv(char *transmitted_iv){
         FILE *fp;
         int x;
         int seed=0;
+        size_t nread=0;
 
         /*********************************************************/
         /* fill IV buffer with data that's as random as possible */
         /*********************************************************/
 
-        /* try to get seed value from /dev/urandom, as its a better source of entropy */
+        /* try to read the IV directly from /dev/urandom, as its a much better source of entropy than seeding rand() */
         fp=fopen("/dev/urandom","r");
         if(fp!=NULL){
-                seed=fgetc(fp);
+                nread=fread(transmitted_iv,1,TRANSMITTED_IV_SIZE,fp);
                 fclose(fp);
                 }
 
-        /* else fallback to using the current time as the seed */
+        /* got all the random bytes we needed straight from the kernel CSPRNG */
+        if(nread==TRANSMITTED_IV_SIZE)
+                return;
+
+        /* fallback: /dev/urandom unavailable or short read, so seed rand() as well as we can and fill in the rest */
+        fp=fopen("/dev/urandom","r");
+        if(fp!=NULL){
+                if(fread(&seed,1,sizeof(seed),fp)!=sizeof(seed))
+                        seed=(int)time(NULL);
+                fclose(fp);
+                }
         else
                 seed=(int)time(NULL);
 
-        /* generate pseudo-random IV */
+        /* generate pseudo-random IV for any bytes we weren't able to read above */
         srand(seed);
-        for(x=0;x<TRANSMITTED_IV_SIZE;x++)
+        for(x=(int)nread;x<TRANSMITTED_IV_SIZE;x++)
                 transmitted_iv[x]=(int)((256.0*rand())/(RAND_MAX+1.0));
 
         return;
@@ -347,14 +384,10 @@ void encrypt_buffer(char *buffer,int buffer_size, char *password, int encryption
                 return;
                 }
 
-#ifdef HAVE_LIBMCRYPT
-        /* use mcrypt routines */
-        else{
-
-                /* encrypt each byte of buffer, one byte at a time (CFB mode) */
-                for(x=0;x<buffer_size;x++)
-                        mcrypt_generic(CI->td,&buffer[x],1);
-                }
+#ifdef HAVE_LIBGCRYPT
+        /* use libgcrypt routines (CFB-8 encrypts in place, byte by byte) */
+        else if(CI->hd_open==TRUE)
+                gcry_cipher_encrypt(CI->hd,buffer,buffer_size,NULL,0);
 #endif
 
         return;
@@ -363,8 +396,6 @@ void encrypt_buffer(char *buffer,int buffer_size, char *password, int encryption
 
 /* decrypt a buffer */
 void decrypt_buffer(char *buffer,int buffer_size, char *password, int encryption_method, struct crypt_instance *CI){
-        int x=0;
-
 #ifdef DEBUG
         syslog(LOG_INFO,"Decrypting with algorithm #%d",encryption_method);
 #endif
@@ -381,14 +412,10 @@ void decrypt_buffer(char *buffer,int buffer_size, char *password, int encryption
         else if(encryption_method==ENCRYPT_XOR)
                 encrypt_buffer(buffer,buffer_size,password,encryption_method,CI);
 
-#ifdef HAVE_LIBMCRYPT
-        /* use mcrypt routines */
-        else{
-
-                /* encrypt each byte of buffer, one byte at a time (CFB mode) */
-                for(x=0;x<buffer_size;x++)
-                        mdecrypt_generic(CI->td,&buffer[x],1);
-                }
+#ifdef HAVE_LIBGCRYPT
+        /* use libgcrypt routines (CFB-8 decrypts in place, byte by byte) */
+        else if(CI->hd_open==TRUE)
+                gcry_cipher_decrypt(CI->hd,buffer,buffer_size,NULL,0);
 #endif
 
         return;
@@ -415,7 +442,8 @@ void randomize_buffer(char *buffer,int buffer_size){
 	/* try to get seed value from /dev/urandom, as its a better source of entropy */
 	fp=fopen("/dev/urandom","r");
 	if(fp!=NULL){
-		seed=fgetc(fp);
+		if(fread(&seed,1,sizeof(seed),fp)!=sizeof(seed))
+			seed=(int)time(NULL);
 		fclose(fp);
 	        }
 
